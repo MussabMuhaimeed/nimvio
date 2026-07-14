@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <AssemblyName>Nimvio</AssemblyName>
+    <RootNamespace>Nimvio</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets\nimvio.ico</ApplicationIcon>
+    <!-- Avoid probing a locally ACL-restricted legacy Microsoft SDKs folder. -->
+    <TargetPlatformMoniker>Windows,Version=7.0</TargetPlatformMoniker>
+    <TargetPlatformDisplayName>Windows</TargetPlatformDisplayName>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="assets\nova-cyan.png" LogicalName="Nimvio.Assets.nova-cyan.png" />
+    <EmbeddedResource Include="assets\mimo-orange.png" LogicalName="Nimvio.Assets.mimo-orange.png" />
+    <EmbeddedResource Include="assets\lumi-purple.png" LogicalName="Nimvio.Assets.lumi-purple.png" />
+  </ItemGroup>
+</Project>

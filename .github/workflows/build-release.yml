@@ -1,0 +1,89 @@
+name: Build and release Nimvio
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nimvio-main-release
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-release:
+    name: Build Windows package and create release
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        shell: pwsh
+        run: dotnet restore .\Nimvio.csproj --configfile .\NuGet.Config
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build .\Nimvio.csproj -c Release --no-restore
+
+      - name: Publish Windows application
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP 'Nimvio-Windows'
+          $app = Join-Path $package 'app'
+          New-Item -ItemType Directory -Force -Path $app | Out-Null
+
+          dotnet publish .\Nimvio.csproj `
+            -c Release `
+            --no-restore `
+            --no-self-contained `
+            -o $app
+
+          Copy-Item .\Install.cmd, .\Uninstall.cmd, .\install.ps1, .\uninstall.ps1 -Destination $package
+          Copy-Item .\README.md, .\README.ar.md -Destination $package
+          Copy-Item .\assets -Destination $package -Recurse
+
+          Compress-Archive `
+            -Path (Join-Path $package '*') `
+            -DestinationPath .\Nimvio-Windows.zip `
+            -CompressionLevel Optimal `
+            -Force
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Nimvio-Windows-${{ github.run_number }}
+          path: Nimvio-Windows.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Nimvio Build #${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          generate_release_notes: true
+          body: |
+            Automated Windows build from the main branch.
+
+            Commit: ${{ github.sha }}
+            Workflow run: ${{ github.run_number }}
+          files: Nimvio-Windows.zip
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
