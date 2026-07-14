@@ -11,9 +11,10 @@ Nimvio walks across your Windows desktop, explores every monitor, finds places t
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows11&logoColor=white)](https://www.microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![C%23](https://img.shields.io/badge/C%23-WinForms-239120?logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/desktop/winforms/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Offline](https://img.shields.io/badge/works-fully%20offline-27AE60)
 
-[Features](#features) · [Characters](#meet-the-characters) · [Installation](#installation) · [Controls](#controls) · [Build](#build-from-source) · [Privacy](#privacy)
+[Features](#features) · [Characters](#meet-the-characters) · [Installation](#installation) · [Controls](#controls) · [Build](#build-from-source) · [Privacy](#privacy) · [License](#license)
 
 </div>
 
@@ -199,7 +200,11 @@ The final **About** menu item opens a visual gallery with portraits of Nova, Mim
 
 ## License
 
-No license has been selected yet. Add a `LICENSE` file before publishing if you want to define how others may use, modify, or redistribute Nimvio.
+Nimvio is released under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Mussab Muhaimeed
+
+You may use, modify, merge, publish, distribute, sublicense, and sell copies of the software, provided the copyright notice and permission notice are included in all copies or substantial portions.
 
 ---
 
