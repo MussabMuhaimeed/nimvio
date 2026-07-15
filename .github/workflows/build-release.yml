@@ -1,16 +1,22 @@
 name: Build and release Nimvio
 
+# Creates a GitHub Release (ZIP) named "Nimvio v26.8.0" from a version tag.
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v26.8.0). Leave empty to use the latest v* tag.'
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: nimvio-main-release
+  group: nimvio-release-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -25,6 +31,35 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -match '^refs/tags/(v.+)$') {
+            $tag = $Matches[1]
+          }
+          elseif (-not [string]::IsNullOrWhiteSpace('${{ inputs.tag }}')) {
+            $tag = '${{ inputs.tag }}'.Trim()
+          }
+          else {
+            $tag = git tag -l 'v*' --sort=-v:refname | Select-Object -First 1
+            if ([string]::IsNullOrWhiteSpace($tag)) {
+              throw 'No v* tags found. Push a tag first (e.g. v26.8.0) or pass a tag input.'
+            }
+          }
+
+          if ($tag -notmatch '^v') {
+            throw "Tag must start with 'v' (got: $tag)"
+          }
+
+          git checkout --force "refs/tags/$tag"
+          $sha = git rev-parse HEAD
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+          Write-Host "Release tag: $tag ($sha)"
 
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v5
@@ -65,7 +100,7 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
-          name: Nimvio-Windows-${{ github.run_number }}
+          name: Nimvio-Windows-${{ steps.version.outputs.tag }}
           path: Nimvio-Windows.zip
           if-no-files-found: error
           retention-days: 30
@@ -73,16 +108,14 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Nimvio Build #${{ github.run_number }}
-          target_commitish: ${{ github.sha }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Nimvio ${{ steps.version.outputs.tag }}
           make_latest: true
           generate_release_notes: true
           body: |
-            Automated Windows build from the main branch.
+            Nimvio ${{ steps.version.outputs.tag }}
 
-            Commit: ${{ github.sha }}
-            Workflow run: ${{ github.run_number }}
+            Commit: ${{ steps.version.outputs.sha }}
           files: Nimvio-Windows.zip
           fail_on_unmatched_files: true
         env:

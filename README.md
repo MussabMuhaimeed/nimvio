@@ -164,18 +164,6 @@ Run the development build:
 dotnet run --project .\Nimvio.csproj
 ```
 
-To build a self-contained MSIX package locally:
-
-```powershell
-dotnet publish .\Nimvio.csproj `
-  -c Release `
-  -r win-x64 `
-  --self-contained true `
-  -p:WindowsPackageType=MSIX `
-  -p:GenerateAppInstallerFile=False `
-  -o .\publish
-```
-
 ## Automated GitHub releases
 
 ### ZIP releases (`build-release.yml`)
