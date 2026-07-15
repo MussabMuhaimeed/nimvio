@@ -5,6 +5,7 @@ obj/
 *.suo
 *.pdb
 publish/
+dist/
 /Nimvio-Windows.zip
 .env
 app/
