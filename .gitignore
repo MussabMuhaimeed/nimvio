@@ -6,3 +6,5 @@ obj/
 *.pdb
 publish/
 /Nimvio-Windows.zip
+.env
+app/

@@ -53,7 +53,7 @@ jobs:
             -o $app
 
           Copy-Item .\Install.cmd, .\Uninstall.cmd, .\install.ps1, .\uninstall.ps1 -Destination $package
-          Copy-Item .\README.md, .\README.ar.md -Destination $package
+          Copy-Item .\README.md -Destination $package
           Copy-Item .\assets -Destination $package -Recurse
 
           Compress-Archive `

@@ -6,7 +6,7 @@
 
 ### Your curious desktop companions.
 
-Nimvio walks across your Windows desktop, explores every monitor, finds places to sit, reacts to you, and develops its own rhythm through energy, curiosity, boredom, and happiness.
+Nimvio walks across your Windows desktop, explores every monitor, finds places to sit, reacts to you and to each other, and develops its own rhythm through energy, curiosity, boredom, and happiness.
 
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows11&logoColor=white)](https://www.microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
@@ -39,7 +39,7 @@ Nimvio walks across your Windows desktop, explores every monitor, finds places t
   </tr>
 </table>
 
-Each character has an independent profile, color, personality, emotional state, favorite screen, and memory of recently visited places. When companions meet, they notice and wave to each other.
+Each character has an independent profile, color, personality, emotional state, favorite screen, and memory of recently visited places. Companions build **relationships** over time, pick a **favorite friend**, and interact when they meet—playing together, hugging, competing, or arguing. A third companion may even get jealous when its favorite friend socializes with someone else.
 
 ## Features
 
@@ -48,15 +48,30 @@ Each character has an independent profile, color, personality, emotional state, 
 - **Internal needs:** energy, curiosity, boredom, and happiness influence every decision.
 - **Personality:** curious, calm, and playful characters behave at different speeds and choose different actions.
 - **Memory:** companions remember their latest six resting places and avoid repeating them immediately.
-- **Context awareness:** eyes follow the mouse or active window, while movement considers monitors and visible window boundaries.
+- **Relationships:** each profile tracks affinity with other companions and remembers a favorite friend.
+- **Context awareness:** eyes follow the mouse, active window, caret while typing, or a YouTube video; movement considers monitors and visible window boundaries.
 
 ### Natural desktop behavior
 
 - Walks, hops, searches, sits, points, waves, thinks, sleeps, and looks around.
-- Finds desktop edges, corners, and suitable visible-window ledges.
+- Finds desktop edges, corners, and suitable visible-window ledges—including the **active window** ledge when curious.
+- **Perches on windows** and moves with them; slides along slowly or hangs on when the window shifts, then falls if the window closes or moves too far.
 - Travels across monitors placed beside, above, or below each other.
-- Includes blinking, breathing, head tilting, sitting transitions, and dynamic shadows.
-- Occasionally stumbles, becomes surprised, uses binoculars, or chases the cursor.
+- Includes blinking, breathing, head tilting, sitting transitions, dynamic shadows, and **speech bubbles**.
+- Reacts to the cursor: may **chase** it, **flee** from it, or catch it and celebrate.
+- **Peeks** beside the text caret when you start typing nearby.
+- **Watches YouTube** with you—companions gather along the top of the video window with popcorn.
+- Shows **app-themed accessories** while you work: a pen for coding apps, a book for browsers and readers, headphones for music players.
+- Greets you with **"You're back!"** after a long absence; may look **sad** if ignored for a while.
+- Gets **surprised** when a new window appears; shows happy, sad, or angry moods.
+- Occasionally stumbles, uses binoculars, or triggers rare playful events.
+
+### Social life between companions
+
+- Nearby companions start varied interactions: hugging, playing, competing, or arguing.
+- Relationship scores change with each interaction and persist across sessions.
+- Reconciliation hugs after a rough relationship can trigger special dialogue.
+- Observers with a favorite friend may react with jealousy.
 
 ### Designed to stay out of the way
 
@@ -93,6 +108,7 @@ The .NET 10 SDK already includes the required runtime for development machines.
 | Release after a fast drag | Throw the character and trigger a surprised reaction |
 | Double-click | Pause or resume autonomous activity |
 | Right-click | Open character settings |
+| Escape (while menu is open) | Close the context menu |
 | Double-click tray icon | Summon all characters near the mouse pointer |
 
 ## Customization
@@ -117,15 +133,17 @@ Nimvio supports up to **three active companions**.
 
 ```mermaid
 flowchart LR
-    A["Observe desktop"] --> B["Evaluate energy, curiosity, boredom, happiness"]
+    A["Observe desktop, windows, cursor, and typing"] --> B["Evaluate energy, curiosity, boredom, happiness"]
     B --> C{"Choose intention"}
-    C -->|Explore| D["Find a new screen or ledge"]
-    C -->|Rest| E["Find a quiet place and sit"]
-    C -->|Interact| F["Watch, point, wave, or chase"]
-    D --> G["Walk or hop"]
-    G --> E
+    C -->|Explore| D["Find a screen, ledge, or active window"]
+    C -->|Rest| E["Sit, think, sleep, or show mood"]
+    C -->|Interact| F["Chase, flee, peek, wave, or speak"]
+    C -->|Social| G["Play, hug, compete, or argue with a friend"]
+    D --> H["Walk, hop, slide, or fall"]
+    H --> E
     E --> A
     F --> A
+    G --> A
 ```
 
 The behavior model is deterministic enough to feel coherent but includes weighted variation, so characters do not repeat the same routine on every cycle.
@@ -146,7 +164,21 @@ Run the development build:
 dotnet run --project .\Nimvio.csproj
 ```
 
+To build a self-contained MSIX package locally:
+
+```powershell
+dotnet publish .\Nimvio.csproj `
+  -c Release `
+  -r win-x64 `
+  --self-contained true `
+  -p:WindowsPackageType=MSIX `
+  -p:GenerateAppInstallerFile=False `
+  -o .\publish
+```
+
 ## Automated GitHub releases
+
+### ZIP releases (`build-release.yml`)
 
 The workflow at `.github/workflows/build-release.yml` runs on every push to `main` and can also be started manually from the Actions tab. It:
 
@@ -163,17 +195,26 @@ The workflow requires the repository setting **Actions → General → Workflow 
 | File | Responsibility |
 | --- | --- |
 | `Program.cs` | Starts the WinForms application context |
-| `NimvioApplicationContext.cs` | Manages companions and the notification-area icon |
-| `NimvioForm.cs` | Behavior state machine, input, animation, menus, and vector rendering |
-| `NimvioMind.cs` | Energy, curiosity, boredom, and happiness model |
-| `DesktopAwareness.cs` | Monitor, visible-window, active-window, and fullscreen detection |
-| `NimvioSettings.cs` | Profiles, preferences, memory, persistence, and startup settings |
+| `NimvioApplicationContext.cs` | Manages companions, social coordination, YouTube watching, and the notification-area icon |
+| `NimvioForm.cs` | Behavior state machine, input, speech bubbles, accessories, animation, menus, and vector rendering |
+| `NimvioMind.cs` | Energy, curiosity, boredom, happiness, and social mood updates |
+| `DesktopAwareness.cs` | Monitors, visible windows, active window metadata, caret position, typing keys, and fullscreen detection |
+| `NimvioSettings.cs` | Profiles, relationships, preferences, memory, persistence, and startup settings |
 | `assets/nimvio.ico` | Multi-resolution Windows application icon |
 | `install.ps1` / `uninstall.ps1` | Per-user installation and removal |
 
 ## Privacy
 
-Nimvio works entirely offline. It does **not** capture screenshots, record keyboard input, collect analytics, or transmit data. Windows APIs are used only to read monitor and window rectangles and determine whether the foreground application is fullscreen.
+Nimvio works entirely offline. It does **not** capture screenshots, store keyboard input, collect analytics, or transmit data over the network.
+
+To react naturally on your desktop, Nimvio reads **local Windows state only**:
+
+- Monitor and window rectangles
+- Whether the foreground application is fullscreen
+- The active window title and process name (for accessories and YouTube detection)
+- The text caret position and whether typing keys are currently pressed (for peeking behavior)
+
+This information is used in memory during each animation tick and is **not written to disk** except for companion settings (profiles, preferences, relationships, and resting-place memory) saved locally.
 
 Settings are stored locally at:
 
@@ -193,7 +234,7 @@ HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 | --- | --- |
 | Nimvio | **Your curious desktop companions** |
 | Created by | **Mussab Muhaimeed** |
-| Version | **26.7** |
+| Version | **26.8** |
 | Technology | C# · .NET 10 · WinForms · GDI+ · Windows API |
 
 The final **About** menu item opens a visual gallery with portraits of Nova, Mimo, and Lumi, their signature colors and personalities, plus the project credits above.

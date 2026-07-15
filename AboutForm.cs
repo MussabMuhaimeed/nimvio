@@ -88,7 +88,7 @@ internal sealed class AboutForm : Form
 
         var projectInfo = new Label
         {
-            Text = "Nimvio — Your curious desktop companions     •     Created by: Mussab Muhaimeed     •     Version: 26.7",
+            Text = "Nimvio — Your curious desktop companions     •     Created by: Mussab Muhaimeed     •     Version: 26.8",
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = Color.FromArgb(174, 187, 207),

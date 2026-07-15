@@ -1,0 +1,59 @@
+name: Build MSIX for Microsoft Store
+
+# Builds an MSIX package and uploads it as a workflow artifact for manual
+# upload in Microsoft Partner Center. No Store CLI or Partner Center secrets.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-msix:
+    name: Build MSIX package
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        shell: pwsh
+        run: dotnet restore .\Nimvio.csproj -r win-x64 --configfile .\NuGet.Config
+
+      - name: Build MSIX package
+        shell: pwsh
+        run: |
+          dotnet publish .\Nimvio.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            --no-restore `
+            -p:WindowsPackageType=MSIX `
+            -p:GenerateAppInstallerFile=False `
+            -p:AppxPackageSigningEnabled=false `
+            -o .\publish
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Nimvio-MSIX-${{ github.ref_name }}
+          path: |
+            publish/**/*.msix
+            publish/**/*.msixbundle
+            publish/**/*.msixupload
+          if-no-files-found: error
+          retention-days: 30

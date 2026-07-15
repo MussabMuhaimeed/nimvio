@@ -41,6 +41,15 @@ internal sealed class NimvioMind
         _profile.Happiness = Clamp(_profile.Happiness + 3);
         _profile.Boredom = Clamp(_profile.Boredom - 5);
     }
-    private static bool IsFun(NimvioBehavior behavior) => behavior is NimvioBehavior.Pointing or NimvioBehavior.Waving or NimvioBehavior.ChasingCursor or NimvioBehavior.Inspecting;
+    public void CaughtCursor()
+    {
+        _profile.Happiness = Clamp(_profile.Happiness + 10);
+        _profile.Boredom = Clamp(_profile.Boredom - 12);
+    }
+    public void MissedUser() => _profile.Happiness = Clamp(_profile.Happiness + 12);
+    public void FeltIgnored() => _profile.Happiness = Clamp(_profile.Happiness - 4);
+    private static bool IsFun(NimvioBehavior behavior) => behavior is NimvioBehavior.Pointing or NimvioBehavior.Waving
+        or NimvioBehavior.ChasingCursor or NimvioBehavior.Inspecting or NimvioBehavior.PlayingTogether
+        or NimvioBehavior.Hugging or NimvioBehavior.Competing;
     private static float Clamp(float value) => Math.Clamp(value, 0, 100);
 }
