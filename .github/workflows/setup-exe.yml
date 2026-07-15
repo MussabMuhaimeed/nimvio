@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Optional version tag to build (e.g. v26.8.0).'
+        description: 'Existing tag for version + GitHub Release (e.g. v26.8.0).'
         required: false
         type: string
 
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: nimvio-setup-${{ github.ref }}
+  group: nimvio-setup-${{ github.ref }}-${{ github.event.inputs.tag || 'none' }}
   cancel-in-progress: true
 
 env:
@@ -33,23 +33,50 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Resolve version
         id: version
         shell: pwsh
         run: |
+          $createRelease = 'false'
+
           if ($env:GITHUB_REF -match '^refs/tags/(v.+)$') {
+            # Tag push: code already matches the tag (must include packaging/)
             $tag = $Matches[1]
-            git checkout --force "refs/tags/$tag"
+            $createRelease = 'true'
           }
           elseif (-not [string]::IsNullOrWhiteSpace('${{ inputs.tag }}')) {
             $tag = '${{ inputs.tag }}'.Trim()
             if ($tag -notmatch '^v') { $tag = "v$tag" }
-            git checkout --force "refs/tags/$tag"
+
+            $ref = git rev-parse --verify "refs/tags/$tag" 2>$null
+            if (-not $ref) {
+              throw @"
+Tag '$tag' was not found (deleted or never pushed).
+
+Remote tags:
+  git ls-remote --tags origin refs/tags/v*
+
+Recreate:
+  git tag $tag <commit-sha>
+  git push origin $tag
+"@
+            }
+
+            # Keep the selected BRANCH tree (has Nimvio.iss). Use tag only for version + release.
+            if (-not (Test-Path .\packaging\Nimvio.iss)) {
+              throw 'packaging/Nimvio.iss missing. Run this workflow from a branch that includes the setup installer files.'
+            }
+
+            $createRelease = 'true'
+            Write-Host "Building current branch code; version/release from tag $tag"
           }
           else {
-            # Manual run on a branch: version from run number, build current HEAD
             $tag = "v0.0.$env:GITHUB_RUN_NUMBER"
+            if (-not (Test-Path .\packaging\Nimvio.iss)) {
+              throw 'packaging/Nimvio.iss missing on this branch.'
+            }
           }
 
           $appVersion = $tag.TrimStart('v', 'V')
@@ -59,7 +86,8 @@ jobs:
 
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "app_version=$appVersion" >> $env:GITHUB_OUTPUT
-          Write-Host "Setup version: $appVersion (tag=$tag)"
+          "create_release=$createRelease" >> $env:GITHUB_OUTPUT
+          Write-Host "Setup version: $appVersion (tag=$tag, create_release=$createRelease)"
 
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v5
@@ -117,7 +145,7 @@ jobs:
           retention-days: 30
 
       - name: Attach setup to GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.version.outputs.create_release == 'true'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
