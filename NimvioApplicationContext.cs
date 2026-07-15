@@ -82,6 +82,7 @@ internal sealed class NimvioApplicationContext : ApplicationContext
         }
         Settings.Profiles.Remove(form.Profile);
         Settings.Save();
+        _forms.Remove(form);
         form.Close();
     }
 
@@ -100,6 +101,18 @@ internal sealed class NimvioApplicationContext : ApplicationContext
             .OrderBy(item => item.Distance)
             .Select(item => item.Form)
             .FirstOrDefault();
+    }
+
+    public void ArrangeYouTubeWatching(DesktopAwareness.WindowSnapshot window)
+    {
+        var viewers = _forms.Where(form => !form.IsDisposed).ToArray();
+        for (var i = 0; i < viewers.Length; i++) viewers[i].BeginYouTubeWatching(window, i, viewers.Length);
+    }
+
+    public void NotifySocialInteraction(NimvioForm first, NimvioForm second)
+    {
+        foreach (var observer in _forms.Where(form => form != first && form != second && !form.IsDisposed))
+            observer.ObserveFriendsInteraction(first, second);
     }
 
     private static float Distance(PointF a, PointF b) => MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));

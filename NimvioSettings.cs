@@ -19,6 +19,10 @@ internal sealed class NimvioProfile
     public float Happiness { get; set; } = 75;
     public List<Point> RecentPlaces { get; set; } = [];
     public string? FavoriteScreen { get; set; }
+    public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
+    public DateTime LastInteractionUtc { get; set; } = DateTime.UtcNow;
+    public Dictionary<string, float> Relationships { get; set; } = [];
+    public string? FavoriteFriendId { get; set; }
 }
 
 internal sealed class NimvioSettings
@@ -52,13 +56,14 @@ internal sealed class NimvioSettings
 
         settings.Profiles ??= [];
         settings.AllowedScreens ??= [];
-        var supportedNames = new[] { "Nova", "Mimo", "Lumi", "نوفا", "ميمو", "لومي" };
+        var supportedNames = new[] { "Nova", "Mimo", "Lumi" };
         settings.Profiles.RemoveAll(profile => !supportedNames.Contains(profile.Name));
         if (settings.Profiles.Count > 3) settings.Profiles.RemoveRange(3, settings.Profiles.Count - 3);
         if (settings.Profiles.Count == 0) settings.Profiles.Add(new NimvioProfile());
-        var names = new Dictionary<string, string> { ["نوفا"] = "Nova", ["ميمو"] = "Mimo", ["لومي"] = "Lumi" };
         foreach (var profile in settings.Profiles)
-            if (names.TryGetValue(profile.Name, out var englishName)) profile.Name = englishName;
+        {
+            profile.Relationships ??= [];
+        }
         return settings;
     }
 
