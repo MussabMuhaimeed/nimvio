@@ -1,7 +1,6 @@
 name: Build MSIX for Microsoft Store
 
 # Builds an MSIX package and uploads it as a workflow artifact for manual
-# upload in Microsoft Partner Center. No Store CLI or Partner Center secrets.
 on:
   push:
     tags:
@@ -30,10 +29,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Restore dependencies
-        shell: pwsh
-        run: dotnet restore .\Nimvio.csproj -r win-x64 --configfile .\NuGet.Config
-
       - name: Build MSIX package
         shell: pwsh
         run: |
@@ -41,7 +36,7 @@ jobs:
             -c Release `
             -r win-x64 `
             --self-contained true `
-            --no-restore `
+            --configfile .\NuGet.Config `
             -p:WindowsPackageType=MSIX `
             -p:GenerateAppInstallerFile=False `
             -p:AppxPackageSigningEnabled=false `
