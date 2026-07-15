@@ -1,7 +1,5 @@
 name: Build MSIX for Microsoft Store
 
-# Publishes Nimvio, packs an unsigned .msix with MakeAppx, uploads it as an artifact
-# for manual upload in Microsoft Partner Center.
 on:
   push:
     tags:
