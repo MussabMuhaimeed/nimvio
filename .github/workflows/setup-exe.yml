@@ -52,19 +52,9 @@ jobs:
 
             $ref = git rev-parse --verify "refs/tags/$tag" 2>$null
             if (-not $ref) {
-              throw @"
-Tag '$tag' was not found (deleted or never pushed).
-
-Remote tags:
-  git ls-remote --tags origin refs/tags/v*
-
-Recreate:
-  git tag $tag <commit-sha>
-  git push origin $tag
-"@
+              throw "Tag '$tag' was not found (deleted or never pushed). List tags with: git ls-remote --tags origin refs/tags/v*"
             }
 
-            # Keep the selected BRANCH tree (has Nimvio.iss). Use tag only for version + release.
             if (-not (Test-Path .\packaging\Nimvio.iss)) {
               throw 'packaging/Nimvio.iss missing. Run this workflow from a branch that includes the setup installer files.'
             }
