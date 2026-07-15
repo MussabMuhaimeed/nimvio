@@ -14,10 +14,6 @@
     <TargetPlatformMoniker>Windows,Version=7.0</TargetPlatformMoniker>
     <TargetPlatformDisplayName>Windows</TargetPlatformDisplayName>
   </PropertyGroup>
-  <PropertyGroup>
-    <WindowsPackageType>MSIX</WindowsPackageType>
-    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
-  </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="assets\nova-cyan.png" LogicalName="Nimvio.Assets.nova-cyan.png" />
     <EmbeddedResource Include="assets\mimo-orange.png" LogicalName="Nimvio.Assets.mimo-orange.png" />

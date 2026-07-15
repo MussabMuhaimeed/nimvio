@@ -1,6 +1,7 @@
 name: Build MSIX for Microsoft Store
 
-# Builds an MSIX package and uploads it as a workflow artifact for manual
+# Publishes Nimvio, packs an unsigned .msix with MakeAppx, uploads it as an artifact
+# for manual upload in Microsoft Partner Center.
 on:
   push:
     tags:
@@ -29,26 +30,40 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Build MSIX package
+      - name: Publish Windows application
         shell: pwsh
         run: |
           dotnet publish .\Nimvio.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
-            --configfile .\NuGet.Config `
-            -p:WindowsPackageType=MSIX `
-            -p:GenerateAppInstallerFile=False `
-            -p:AppxPackageSigningEnabled=false `
-            -o .\publish
+            -o .\publish\app
+
+      - name: Resolve package version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME
+          }
+          else {
+            $version = "0.0.$env:GITHUB_RUN_NUMBER.0"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Package version: $version"
+
+      - name: Pack MSIX
+        shell: pwsh
+        run: |
+          .\scripts\Pack-Msix.ps1 `
+            -PublishDir .\publish\app `
+            -OutputMsix .\publish\Nimvio.msix `
+            -Version '${{ steps.version.outputs.version }}'
 
       - name: Upload MSIX artifact
         uses: actions/upload-artifact@v7
         with:
           name: Nimvio-MSIX-${{ github.ref_name }}
-          path: |
-            publish/**/*.msix
-            publish/**/*.msixbundle
-            publish/**/*.msixupload
+          path: publish/Nimvio.msix
           if-no-files-found: error
           retention-days: 30
