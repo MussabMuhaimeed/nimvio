@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Nimvio;
 
 internal sealed class NimvioApplicationContext : ApplicationContext
