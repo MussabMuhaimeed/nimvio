@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Nimvio;
 
 internal sealed class NimvioApplicationContext : ApplicationContext
@@ -30,8 +32,18 @@ internal sealed class NimvioApplicationContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit Nimvio", null, (_, _) => ExitAll());
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Privacy", null, (_, _) => OpenPrivacyPolicy());
         menu.Items.Add("About", null, (_, _) => AboutForm.ShowAbout());
         return menu;
+    }
+
+    private static void OpenPrivacyPolicy()
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "https://github.com/MussabMuhaimeed/nimvio#privacy",
+            UseShellExecute = true
+        });
     }
 
     public void AddCompanion()

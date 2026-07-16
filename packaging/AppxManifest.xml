@@ -5,19 +5,15 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
 
-  <!--
-    Before Store submission, replace Identity Name and Publisher with values
-    from Partner Center (Package/Identity). Version is set by Pack-Msix.ps1.
-  -->
   <Identity
-    Name="Nimvio.Desktop"
-    Publisher="CN=Nimvio"
-    Version="0.0.0.0"
+    Name="MussabMuhaimeed.Nimvio"
+    Publisher="CN=9D1E88C2-D3DB-495B-8E62-3632EC50C783"
+    Version="1.0.0.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
     <DisplayName>Nimvio</DisplayName>
-    <PublisherDisplayName>Nimvio</PublisherDisplayName>
+    <PublisherDisplayName>Mussab Muhaimeed</PublisherDisplayName>
     <Description>Desktop companions for Windows.</Description>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
