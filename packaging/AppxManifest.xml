@@ -9,7 +9,7 @@
   <Identity
     Name="MussabMuhaimeed.Nimvio"
     Publisher="CN=9D1E88C2-D3DB-495B-8E62-3632EC50C783"
-    Version="1.0.0.0"
+    Version="1.0.0.1"
     ProcessorArchitecture="x64" />
 
   <Properties>
