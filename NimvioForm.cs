@@ -1328,7 +1328,7 @@ internal sealed class NimvioForm : Form
             g.DrawArc(eyePen, -23, headY + 20, 17, 9, 15, 150);
             g.DrawArc(eyePen, 6, headY + 20, 17, 9, 15, 150);
             using var zFont = new Font("Segoe UI", 10, FontStyle.Bold);
-            g.DrawString("z", zFont, accent, 27, headY - 8);
+            DrawUprightString(g, "z", zFont, accent, 27, headY - 8);
             return;
         }
 
@@ -1380,7 +1380,7 @@ internal sealed class NimvioForm : Form
         else if (_behavior == NimvioBehavior.Thinking)
         {
             using var font = new Font("Segoe UI", 12, FontStyle.Bold);
-            g.DrawString("?", font, accent, 32, -48);
+            DrawUprightString(g, "?", font, accent, 32, -48);
         }
         else if (_behavior == NimvioBehavior.Inspecting)
         {
@@ -1397,18 +1397,18 @@ internal sealed class NimvioForm : Form
         else if (_behavior == NimvioBehavior.Happy)
         {
             using var font = new Font("Segoe UI Symbol", 10, FontStyle.Bold);
-            g.DrawString("♥", font, accent, 30, -50);
-            g.DrawString("♥", font, accent, -43, -42);
+            DrawUprightString(g, "♥", font, accent, 30, -50);
+            DrawUprightString(g, "♥", font, accent, -43, -42);
         }
         else if (_behavior == NimvioBehavior.Peeking)
         {
             using var font = new Font("Segoe UI", 10, FontStyle.Bold | FontStyle.Italic);
-            g.DrawString("...", font, accent, 28, -48);
+            DrawUprightString(g, "...", font, accent, 28, -48);
         }
         else if (_behavior == NimvioBehavior.FleeingCursor)
         {
             using var font = new Font("Segoe UI", 10, FontStyle.Bold);
-            g.DrawString("!", font, accent, 32, -48);
+            DrawUprightString(g, "!", font, accent, 32, -48);
         }
         else if (_behavior == NimvioBehavior.PlayingTogether)
         {
@@ -1417,22 +1417,22 @@ internal sealed class NimvioForm : Form
         else if (_behavior == NimvioBehavior.Arguing)
         {
             using var font = new Font("Segoe UI", 10, FontStyle.Bold);
-            g.DrawString("!?", font, accent, 27, -50);
+            DrawUprightString(g, "!?", font, accent, 27, -50);
         }
         else if (_behavior == NimvioBehavior.Hugging)
         {
             using var font = new Font("Segoe UI Symbol", 11, FontStyle.Bold);
-            g.DrawString("♥", font, accent, 29, -48);
+            DrawUprightString(g, "♥", font, accent, 29, -48);
         }
         else if (_behavior == NimvioBehavior.Competing)
         {
             using var font = new Font("Segoe UI Symbol", 10, FontStyle.Bold);
-            g.DrawString("⚑", font, accent, 29, -48);
+            DrawUprightString(g, "⚑", font, accent, 29, -48);
         }
         else if (_behavior == NimvioBehavior.Sad)
         {
             using var font = new Font("Segoe UI", 9, FontStyle.Bold);
-            g.DrawString("...", font, accent, 28, -46);
+            DrawUprightString(g, "...", font, accent, 28, -46);
         }
         else if (_behavior == NimvioBehavior.Angry)
         {
@@ -1456,7 +1456,7 @@ internal sealed class NimvioForm : Form
         else if (_behavior == NimvioBehavior.Stumbling)
         {
             using var font = new Font("Segoe UI Symbol", 11, FontStyle.Bold);
-            g.DrawString("★", font, accent, 29, -47);
+            DrawUprightString(g, "★", font, accent, 29, -47);
         }
     }
 
@@ -1640,8 +1640,8 @@ internal sealed class NimvioForm : Form
         var pulse = MathF.Sin(_phase * 1.4f) * 2f;
         using var noteBrush = new SolidBrush(Color.FromArgb(210, accentColor));
         using var noteFont = new Font("Segoe UI Symbol", 9, FontStyle.Bold);
-        g.DrawString("\u266a", noteFont, noteBrush, 38, headY - 9 + pulse);
-        g.DrawString("\u266a", noteFont, noteBrush, -50, headY + 2 - pulse);
+        DrawUprightString(g, "\u266a", noteFont, noteBrush, 38, headY - 9 + pulse);
+        DrawUprightString(g, "\u266a", noteFont, noteBrush, -50, headY + 2 - pulse);
     }
 
     private void DrawSpeechBubble(Graphics g)
@@ -1658,10 +1658,35 @@ internal sealed class NimvioForm : Form
         using var font = new Font("Segoe UI", 7.5f, FontStyle.Bold);
         using var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
         using var path = RoundedRect(rectangle, 7);
+
+        // Bubble is centered on X=0; undo facing flip so speech stays readable when looking left.
+        var state = g.Save();
+        if (!_facingRight)
+        {
+            g.ScaleTransform(-1, 1);
+        }
+
         g.FillPath(bubble, path);
         g.DrawPath(outline, path);
         g.FillPolygon(bubble, [new PointF(-5, -36), new PointF(5, -36), new PointF(0, -31)]);
         g.DrawString(_speechText, font, textBrush, rectangle, format);
+        g.Restore(state);
+    }
+
+    private void DrawUprightString(Graphics g, string text, Font font, Brush brush, float x, float y)
+    {
+        if (_facingRight)
+        {
+            g.DrawString(text, font, brush, x, y);
+            return;
+        }
+
+        var state = g.Save();
+        g.TranslateTransform(x, y);
+        g.ScaleTransform(-1, 1);
+        g.TranslateTransform(-x, -y);
+        g.DrawString(text, font, brush, x, y);
+        g.Restore(state);
     }
 
     private static GraphicsPath RoundedRect(RectangleF rectangle, float radius)
