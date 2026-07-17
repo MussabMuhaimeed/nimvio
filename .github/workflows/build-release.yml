@@ -1,6 +1,5 @@
 name: Build and release Nimvio
 
-# Creates a GitHub Release (ZIP) named "Nimvio v26.8.0" from a version tag.
 on:
   push:
     tags:
