@@ -38,12 +38,28 @@ internal static class DesktopAwareness
         var ownProcess = (uint)Environment.ProcessId;
         EnumWindows((hwnd, _) =>
         {
-            if (!IsWindowVisible(hwnd) || IsIconic(hwnd)) return true;
+            if (!IsWindowVisible(hwnd) || IsIconic(hwnd))
+            {
+                return true;
+            }
+
             GetWindowThreadProcessId(hwnd, out var processId);
-            if (processId == ownProcess || !GetWindowRect(hwnd, out var r)) return true;
+            if (processId == ownProcess || !GetWindowRect(hwnd, out var r))
+            {
+                return true;
+            }
+
             var rectangle = Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom);
-            if (rectangle.Width < 180 || rectangle.Height < 100) return true;
-            if (screen.Bounds.IntersectsWith(rectangle)) result.Add(rectangle);
+            if (rectangle.Width < 180 || rectangle.Height < 100)
+            {
+                return true;
+            }
+
+            if (screen.Bounds.IntersectsWith(rectangle))
+            {
+                result.Add(rectangle);
+            }
+
             return true;
         }, IntPtr.Zero);
         return result;
@@ -52,16 +68,28 @@ internal static class DesktopAwareness
     public static Point? ActiveWindowCenter()
     {
         var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r)) return null;
+        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r))
+        {
+            return null;
+        }
+
         return new Point((r.Left + r.Right) / 2, (r.Top + r.Bottom) / 2);
     }
 
     public static Rectangle? ActiveWindowRectangle()
     {
         var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r)) return null;
+        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r))
+        {
+            return null;
+        }
+
         GetWindowThreadProcessId(hwnd, out var processId);
-        if (processId == (uint)Environment.ProcessId) return null;
+        if (processId == (uint)Environment.ProcessId)
+        {
+            return null;
+        }
+
         var rectangle = Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom);
         return rectangle.Width >= 180 && rectangle.Height >= 100 ? rectangle : null;
     }
@@ -69,9 +97,17 @@ internal static class DesktopAwareness
     public static WindowSnapshot? ActiveWindow()
     {
         var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero || !TryGetWindowRectangle(hwnd, out var rectangle)) return null;
+        if (hwnd == IntPtr.Zero || !TryGetWindowRectangle(hwnd, out var rectangle))
+        {
+            return null;
+        }
+
         GetWindowThreadProcessId(hwnd, out var processId);
-        if (processId == (uint)Environment.ProcessId || rectangle.Width < 180 || rectangle.Height < 100) return null;
+        if (processId == (uint)Environment.ProcessId || rectangle.Width < 180 || rectangle.Height < 100)
+        {
+            return null;
+        }
+
         var titleLength = GetWindowTextLength(hwnd);
         var title = new StringBuilder(Math.Max(1, titleLength + 1));
         GetWindowText(hwnd, title, title.Capacity);
@@ -82,7 +118,11 @@ internal static class DesktopAwareness
     public static bool TryGetWindowRectangle(IntPtr hwnd, out Rectangle rectangle)
     {
         rectangle = Rectangle.Empty;
-        if (hwnd == IntPtr.Zero || !IsWindowVisible(hwnd) || IsIconic(hwnd) || !GetWindowRect(hwnd, out var r)) return false;
+        if (hwnd == IntPtr.Zero || !IsWindowVisible(hwnd) || IsIconic(hwnd) || !GetWindowRect(hwnd, out var r))
+        {
+            return false;
+        }
+
         rectangle = Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom);
         return rectangle.Width > 0 && rectangle.Height > 0;
     }
@@ -93,9 +133,17 @@ internal static class DesktopAwareness
         var ownProcess = (uint)Environment.ProcessId;
         EnumWindows((hwnd, _) =>
         {
-            if (!TryGetWindowRectangle(hwnd, out var rectangle) || rectangle.Width < 180 || rectangle.Height < 100) return true;
+            if (!TryGetWindowRectangle(hwnd, out var rectangle) || rectangle.Width < 180 || rectangle.Height < 100)
+            {
+                return true;
+            }
+
             GetWindowThreadProcessId(hwnd, out var processId);
-            if (processId != ownProcess) result.Add(hwnd);
+            if (processId != ownProcess)
+            {
+                result.Add(hwnd);
+            }
+
             return true;
         }, IntPtr.Zero);
         return result;
@@ -104,11 +152,23 @@ internal static class DesktopAwareness
     public static Point? ActiveCaretPosition()
     {
         var foreground = GetForegroundWindow();
-        if (foreground == IntPtr.Zero) return null;
+        if (foreground == IntPtr.Zero)
+        {
+            return null;
+        }
+
         var threadId = GetWindowThreadProcessId(foreground, out var processId);
-        if (processId == (uint)Environment.ProcessId) return null;
+        if (processId == (uint)Environment.ProcessId)
+        {
+            return null;
+        }
+
         var info = new GuiThreadInfo { Size = Marshal.SizeOf<GuiThreadInfo>() };
-        if (!GetGUIThreadInfo(threadId, ref info) || info.Caret == IntPtr.Zero) return null;
+        if (!GetGUIThreadInfo(threadId, ref info) || info.Caret == IntPtr.Zero)
+        {
+            return null;
+        }
+
         var point = new Point((info.CaretRect.Left + info.CaretRect.Right) / 2, info.CaretRect.Bottom);
         return ClientToScreen(info.Caret, ref point) ? point : null;
     }
@@ -120,8 +180,15 @@ internal static class DesktopAwareness
         {
             var candidate = (Keys)key;
             if (candidate is Keys.ShiftKey or Keys.ControlKey or Keys.Menu or Keys.Capital
-                or Keys.LWin or Keys.RWin or Keys.Escape or Keys.Tab) continue;
-            if ((GetAsyncKeyState(key) & 0x8000) != 0) pressed.Add(candidate);
+                or Keys.LWin or Keys.RWin or Keys.Escape or Keys.Tab)
+            {
+                continue;
+            }
+
+            if ((GetAsyncKeyState(key) & 0x8000) != 0)
+            {
+                pressed.Add(candidate);
+            }
         }
         return pressed;
     }
@@ -129,9 +196,17 @@ internal static class DesktopAwareness
     public static bool IsForeignFullscreen()
     {
         var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r)) return false;
+        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r))
+        {
+            return false;
+        }
+
         GetWindowThreadProcessId(hwnd, out var processId);
-        if (processId == (uint)Environment.ProcessId) return false;
+        if (processId == (uint)Environment.ProcessId)
+        {
+            return false;
+        }
+
         var rectangle = Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom);
         var screen = Screen.FromRectangle(rectangle).Bounds;
         return Math.Abs(rectangle.Left - screen.Left) <= 2 && Math.Abs(rectangle.Top - screen.Top) <= 2

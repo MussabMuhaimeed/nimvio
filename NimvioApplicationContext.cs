@@ -7,10 +7,13 @@ internal sealed class NimvioApplicationContext : ApplicationContext
     private readonly List<NimvioForm> _forms = [];
     private readonly NotifyIcon _tray;
     private readonly Icon _appIcon;
+    private readonly CancellationTokenSource _singleInstanceCts = new();
+    private readonly SynchronizationContext _uiContext;
     public NimvioSettings Settings { get; } = NimvioSettings.Load();
 
     public NimvioApplicationContext()
     {
+        _uiContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         _appIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? (Icon)SystemIcons.Application.Clone();
         _tray = new NotifyIcon
         {
@@ -21,7 +24,12 @@ internal sealed class NimvioApplicationContext : ApplicationContext
         };
         _tray.DoubleClick += (_, _) => SummonAll();
 
-        foreach (var profile in Settings.Profiles.Take(3).ToArray()) AddForm(profile, false);
+        SingleInstance.RunActivationServer(() => _uiContext.Post(_ => SummonAll(), null), _singleInstanceCts.Token);
+
+        foreach (var profile in Settings.Profiles.Take(3).ToArray())
+        {
+            AddForm(profile, false);
+        }
     }
 
     private ContextMenuStrip BuildTrayMenu()
@@ -79,10 +87,16 @@ internal sealed class NimvioApplicationContext : ApplicationContext
         form.FormClosed += (_, _) =>
         {
             _forms.Remove(form);
-            if (_forms.Count == 0) ExitAll();
+            if (_forms.Count == 0)
+            {
+                ExitAll();
+            }
         };
         form.Show();
-        if (nearCursor) form.SummonTo(Screen.FromPoint(Cursor.Position), _forms.Count * 22);
+        if (nearCursor)
+        {
+            form.SummonTo(Screen.FromPoint(Cursor.Position), _forms.Count * 22);
+        }
     }
 
     public void RemoveForm(NimvioForm form)
@@ -101,7 +115,9 @@ internal sealed class NimvioApplicationContext : ApplicationContext
     public void SummonAll()
     {
         var screen = Screen.FromPoint(Cursor.Position);
-        for (var i = 0; i < _forms.Count; i++) _forms[i].SummonTo(screen, i * 28);
+        for (var i = 0; i < _forms.Count; i++) {
+            _forms[i].SummonTo(screen, i * 28);
+        }
     }
 
     public NimvioForm? FindNearbyForm(NimvioForm source, float maximumDistance)
@@ -118,13 +134,18 @@ internal sealed class NimvioApplicationContext : ApplicationContext
     public void ArrangeYouTubeWatching(DesktopAwareness.WindowSnapshot window)
     {
         var viewers = _forms.Where(form => !form.IsDisposed).ToArray();
-        for (var i = 0; i < viewers.Length; i++) viewers[i].BeginYouTubeWatching(window, i, viewers.Length);
+        for (var i = 0; i < viewers.Length; i++)
+        { 
+            viewers[i].BeginYouTubeWatching(window, i, viewers.Length);
+        }
     }
 
     public void NotifySocialInteraction(NimvioForm first, NimvioForm second)
     {
         foreach (var observer in _forms.Where(form => form != first && form != second && !form.IsDisposed))
+        {
             observer.ObserveFriendsInteraction(first, second);
+        } 
     }
 
     private static float Distance(PointF a, PointF b) => MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
@@ -134,10 +155,15 @@ internal sealed class NimvioApplicationContext : ApplicationContext
     public void ExitAll()
     {
         Settings.Save();
+        _singleInstanceCts.Cancel();
         _tray.Visible = false;
         _tray.Dispose();
         _appIcon.Dispose();
-        foreach (var form in _forms.ToArray()) form.Close();
+        foreach (var form in _forms.ToArray())
+        {
+            form.Close();
+        }
+
         ExitThread();
     }
 }

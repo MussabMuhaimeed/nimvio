@@ -13,7 +13,11 @@ internal sealed class NimvioMind
 
     public void Tick(NimvioBehavior behavior, ActivityLevel activity)
     {
-        if (++_tick % 60 != 0) return;
+        if (++_tick % 60 != 0)
+        {
+            return;
+        }
+
         var activeFactor = activity == ActivityLevel.Energetic ? 1.25f : activity == ActivityLevel.Calm ? .75f : 1f;
         var moving = behavior is NimvioBehavior.Walking or NimvioBehavior.Hopping or NimvioBehavior.ChasingCursor or NimvioBehavior.Thrown;
 

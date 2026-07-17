@@ -1,4 +1,3 @@
-using Microsoft.Win32;
 using System.Text.Json;
 
 namespace Nimvio;
@@ -41,8 +40,6 @@ internal sealed class NimvioSettings
 
     private static string Folder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Nimvio");
     private static string FilePath => Path.Combine(Folder, "settings.json");
-    private const string StartupKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-
     public static NimvioSettings Load()
     {
         NimvioSettings settings;
@@ -58,8 +55,16 @@ internal sealed class NimvioSettings
         settings.AllowedScreens ??= [];
         var supportedNames = new[] { "Nova", "Mimo", "Lumi" };
         settings.Profiles.RemoveAll(profile => !supportedNames.Contains(profile.Name));
-        if (settings.Profiles.Count > 3) settings.Profiles.RemoveRange(3, settings.Profiles.Count - 3);
-        if (settings.Profiles.Count == 0) settings.Profiles.Add(new NimvioProfile());
+        if (settings.Profiles.Count > 3)
+        {
+            settings.Profiles.RemoveRange(3, settings.Profiles.Count - 3);
+        }
+
+        if (settings.Profiles.Count == 0)
+        {
+            settings.Profiles.Add(new NimvioProfile());
+        }
+
         foreach (var profile in settings.Profiles)
         {
             profile.Relationships ??= [];
@@ -79,7 +84,11 @@ internal sealed class NimvioSettings
 
     public bool IsQuietTime(DateTime now)
     {
-        if (!QuietHoursEnabled) return false;
+        if (!QuietHoursEnabled)
+        {
+            return false;
+        }
+
         return QuietStartHour < QuietEndHour
             ? now.Hour >= QuietStartHour && now.Hour < QuietEndHour
             : now.Hour >= QuietStartHour || now.Hour < QuietEndHour;
@@ -88,21 +97,16 @@ internal sealed class NimvioSettings
     public Screen[] EnabledScreens()
     {
         var screens = Screen.AllScreens;
-        if (AllowedScreens.Count == 0) return screens;
+        if (AllowedScreens.Count == 0)
+        {
+            return screens;
+        }
+
         var enabled = screens.Where(screen => AllowedScreens.Contains(screen.DeviceName)).ToArray();
         return enabled.Length == 0 ? screens : enabled;
     }
 
-    public static bool StartsWithWindows()
-    {
-        using var key = Registry.CurrentUser.OpenSubKey(StartupKey);
-        return key?.GetValue("Nimvio") is string;
-    }
+    public static bool StartsWithWindows() => NimvioStartup.StartsWithWindows();
 
-    public static void SetStartWithWindows(bool enabled)
-    {
-        using var key = Registry.CurrentUser.CreateSubKey(StartupKey);
-        if (enabled) key.SetValue("Nimvio", $"\"{Environment.ProcessPath}\"");
-        else key.DeleteValue("Nimvio", false);
-    }
+    public static Task SetStartWithWindowsAsync(bool enabled) => NimvioStartup.SetStartWithWindowsAsync(enabled);
 }
