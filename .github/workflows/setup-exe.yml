@@ -1,9 +1,9 @@
 name: Build setup EXE
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ['Build and release Nimvio']
+    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: nimvio-setup-${{ github.ref }}-${{ github.event.inputs.tag || 'none' }}
+  group: nimvio-setup-${{ github.event.workflow_run.head_sha || github.ref }}-${{ github.event.inputs.tag || 'none' }}
   cancel-in-progress: true
 
 env:
@@ -25,6 +25,7 @@ env:
 jobs:
   build-setup:
     name: Build setup EXE
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: windows-latest
     timeout-minutes: 45
 
@@ -32,6 +33,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -41,10 +43,22 @@ jobs:
         run: |
           $createRelease = 'false'
 
-          if ($env:GITHUB_REF -match '^refs/tags/(v.+)$') {
-            # Tag push: code already matches the tag (must include packaging/)
-            $tag = $Matches[1]
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_run') {
+            $sha = '${{ github.event.workflow_run.head_sha }}'
+            $tag = git describe --tags --exact-match $sha 2>$null
+            if (-not $tag) {
+              $tag = git tag -l 'v*' --points-at $sha | Select-Object -First 1
+            }
+            if (-not $tag) {
+              throw "No release tag found at commit $sha"
+            }
+
+            if (-not (Test-Path .\packaging\Nimvio.iss)) {
+              throw 'packaging/Nimvio.iss missing at tagged commit.'
+            }
+
             $createRelease = 'true'
+            Write-Host "Attaching setup to existing release $tag ($sha)"
           }
           elseif (-not [string]::IsNullOrWhiteSpace('${{ inputs.tag }}')) {
             $tag = '${{ inputs.tag }}'.Trim()
@@ -74,10 +88,12 @@ jobs:
             throw "Invalid version '$appVersion' (from tag '$tag')"
           }
 
+          $setupName = "Nimvio-Setup-$appVersion.exe"
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "app_version=$appVersion" >> $env:GITHUB_OUTPUT
+          "setup_name=$setupName" >> $env:GITHUB_OUTPUT
           "create_release=$createRelease" >> $env:GITHUB_OUTPUT
-          Write-Host "Setup version: $appVersion (tag=$tag, create_release=$createRelease)"
+          Write-Host "Setup version: $appVersion (tag=$tag, file=$setupName, create_release=$createRelease)"
 
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v5
@@ -139,9 +155,12 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Nimvio ${{ steps.version.outputs.tag }}
-          make_latest: true
-          generate_release_notes: true
+          append_body: true
+          generate_release_notes: false
+          body: |
+            ### Windows installer
+
+            Download **${{ steps.version.outputs.setup_name }}** below for a guided per-user Windows setup (Inno Setup).
           files: dist/Nimvio-Setup-*.exe
           fail_on_unmatched_files: true
         env:

@@ -13,6 +13,19 @@ internal static class Program
             return;
         }
 #endif
-        Application.Run(new NimvioApplicationContext());
+        if (!SingleInstance.TryAcquire(out var mutex))
+        {
+            return;
+        }
+
+        try
+        {
+            Application.Run(new NimvioApplicationContext());
+        }
+        finally
+        {
+            mutex?.ReleaseMutex();
+            mutex?.Dispose();
+        }
     }
 }

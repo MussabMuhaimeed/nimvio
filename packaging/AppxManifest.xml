@@ -2,13 +2,14 @@
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap rescap">
+  IgnorableNamespaces="uap desktop rescap">
 
   <Identity
     Name="MussabMuhaimeed.Nimvio"
     Publisher="CN=9D1E88C2-D3DB-495B-8E62-3632EC50C783"
-    Version="1.0.0.0"
+    Version="1.0.0.1"
     ProcessorArchitecture="x64" />
 
   <Properties>
@@ -41,6 +42,17 @@
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <desktop:Extension
+          Category="windows.startupTask"
+          Executable="Nimvio.exe"
+          EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask
+            TaskId="NimvioStartup"
+            Enabled="false"
+            DisplayName="Nimvio" />
+        </desktop:Extension>
+      </Extensions>
     </Application>
   </Applications>
 </Package>

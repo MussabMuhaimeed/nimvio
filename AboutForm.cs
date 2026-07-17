@@ -28,8 +28,14 @@ internal sealed class AboutForm : Form
     public static void ShowAbout(IWin32Window? owner = null)
     {
         using var form = new AboutForm();
-        if (owner is null) form.ShowDialog();
-        else form.ShowDialog(owner);
+        if (owner is null)
+        {
+            form.ShowDialog();
+        }
+        else
+        {
+            form.ShowDialog(owner);
+        }
     }
 
 #if DEBUG
@@ -88,7 +94,7 @@ internal sealed class AboutForm : Form
 
         var projectInfo = new Label
         {
-            Text = "Nimvio — Your curious desktop companions     •     Created by: Mussab Muhaimeed     •     Version: 26.8",
+            Text = "Nimvio — Your curious desktop companions     •     Created by: Mussab Muhaimeed     •     Version: 26.8.1",
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = Color.FromArgb(174, 187, 207),
@@ -177,7 +183,11 @@ internal sealed class AboutForm : Form
     {
         if (disposing)
         {
-            foreach (var image in _images) image.Dispose();
+            foreach (var image in _images)
+            {
+                image.Dispose();
+            }
+
             Icon?.Dispose();
         }
         base.Dispose(disposing);
