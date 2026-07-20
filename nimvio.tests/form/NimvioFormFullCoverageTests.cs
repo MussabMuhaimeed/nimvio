@@ -583,10 +583,16 @@ public sealed class NimvioFormFullCoverageTests : IDisposable
             playful.Curiosity = 10;
             var playfulSettings = NimvioFormScenario.SettingsWith(playful);
             var playfulForm = Assert.Single(_scenario.CreateContext(playfulSettings, createInitialForms: true).Forms);
+            var playfulCursor = Cursor.Position;
+            playfulForm.Location = new Point(playfulCursor.X - playfulForm.Width / 2, playfulCursor.Y - playfulForm.Height / 2);
+            NimvioFormTestState.SetLastCursorPosition(playfulForm, playfulCursor);
+            NimvioFormTestState.SetCursorInteractionCooldown(playfulForm, 999);
+            NimvioFormTestState.SetTypingCooldown(playfulForm, 999);
             NimvioFormTestState.SetBehavior(playfulForm, NimvioBehavior.Waving);
             NimvioFormTestState.SetBehaviorTicks(playfulForm, 1);
             NimvioFormTestState.SetRestActionsRemaining(playfulForm, 3);
-            NimvioFormTestState.SetRandom(playfulForm, new ScriptedRandom(ints: [99]));
+            // Playful roll >= 95 => Sleeping
+            NimvioFormTestState.SetRandom(playfulForm, new ScriptedRandom(ints: [99, 300]));
 
             // Act
             NimvioFormTestState.Tick(playfulForm);
@@ -602,10 +608,16 @@ public sealed class NimvioFormFullCoverageTests : IDisposable
             calm.Curiosity = 10;
             var calmSettings = NimvioFormScenario.SettingsWith(calm);
             var calmForm = Assert.Single(_scenario.CreateContext(calmSettings, createInitialForms: true).Forms);
+            var calmCursor = Cursor.Position;
+            calmForm.Location = new Point(calmCursor.X - calmForm.Width / 2, calmCursor.Y - calmForm.Height / 2);
+            NimvioFormTestState.SetLastCursorPosition(calmForm, calmCursor);
+            NimvioFormTestState.SetCursorInteractionCooldown(calmForm, 999);
+            NimvioFormTestState.SetTypingCooldown(calmForm, 999);
             NimvioFormTestState.SetBehavior(calmForm, NimvioBehavior.Waving);
             NimvioFormTestState.SetBehaviorTicks(calmForm, 1);
             NimvioFormTestState.SetRestActionsRemaining(calmForm, 3);
-            NimvioFormTestState.SetRandom(calmForm, new ScriptedRandom(ints: [99]));
+            // Calm roll >= 95 => Pointing
+            NimvioFormTestState.SetRandom(calmForm, new ScriptedRandom(ints: [99, 200]));
 
             // Act
             NimvioFormTestState.Tick(calmForm);
