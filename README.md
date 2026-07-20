@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/nimvio-icon.png" alt="Nimvio application icon" width="132" />
+<img src="Nimvio.App/assets/nimvio-icon.png" alt="Nimvio application icon" width="132" />
 
 # Nimvio
 
@@ -25,15 +25,15 @@ Nimvio walks across your Windows desktop, explores every monitor, finds places t
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="assets/nova-cyan.png" alt="Nova in cyan" width="280" />
+      <img src="Nimvio.App/assets/nova-cyan.png" alt="Nova in cyan" width="280" />
       <br /><strong>Nova</strong><br />Curious · Cyan
     </td>
     <td align="center" width="33%">
-      <img src="assets/mimo-orange.png" alt="Mimo in orange" width="280" />
+      <img src="Nimvio.App/assets/mimo-orange.png" alt="Mimo in orange" width="280" />
       <br /><strong>Mimo</strong><br />Playful · Orange
     </td>
     <td align="center" width="33%">
-      <img src="assets/lumi-purple.png" alt="Lumi in purple" width="280" />
+      <img src="Nimvio.App/assets/lumi-purple.png" alt="Lumi in purple" width="280" />
       <br /><strong>Lumi</strong><br />Calm · Purple
     </td>
   </tr>
