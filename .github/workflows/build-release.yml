@@ -88,11 +88,11 @@ jobs:
 
       - name: Restore dependencies
         shell: pwsh
-        run: dotnet restore .\Nimvio.csproj --configfile .\NuGet.Config
+        run: dotnet restore .\Nimvio.App\Nimvio.csproj --configfile .\NuGet.Config
 
       - name: Build
         shell: pwsh
-        run: dotnet build .\Nimvio.csproj -c Release --no-restore
+        run: dotnet build .\Nimvio.App\Nimvio.csproj -c Release --no-restore
 
       - name: Publish Windows application
         shell: pwsh
@@ -101,7 +101,7 @@ jobs:
           $app = Join-Path $package 'app'
           New-Item -ItemType Directory -Force -Path $app | Out-Null
 
-          dotnet publish .\Nimvio.csproj `
+          dotnet publish .\Nimvio.App\Nimvio.csproj `
             -c Release `
             --no-restore `
             --no-self-contained `
@@ -109,7 +109,7 @@ jobs:
 
           Copy-Item .\Install.cmd, .\Uninstall.cmd, .\install.ps1, .\uninstall.ps1 -Destination $package
           Copy-Item .\README.md -Destination $package
-          Copy-Item .\assets -Destination $package -Recurse
+          Copy-Item .\Nimvio.App\assets -Destination $package -Recurse
 
           Compress-Archive `
             -Path (Join-Path $package '*') `

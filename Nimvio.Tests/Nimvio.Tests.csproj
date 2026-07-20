@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Nimvio.csproj" />
+    <ProjectReference Include="..\Nimvio.App\Nimvio.csproj" />
   </ItemGroup>
 
   <ItemGroup>

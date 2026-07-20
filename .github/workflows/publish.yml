@@ -52,7 +52,7 @@ jobs:
       - name: Publish Windows application
         shell: pwsh
         run: |
-          dotnet publish .\Nimvio.csproj `
+          dotnet publish .\Nimvio.App\Nimvio.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `

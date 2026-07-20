@@ -153,15 +153,15 @@ The behavior model is deterministic enough to feel coherent but includes weighte
 Open PowerShell in the project directory:
 
 ```powershell
-dotnet restore .\Nimvio.csproj --configfile .\NuGet.Config
-dotnet build .\Nimvio.csproj -c Release --no-restore
-dotnet publish .\Nimvio.csproj -c Release --no-restore --no-self-contained -o .\publish
+dotnet restore .\Nimvio.App\Nimvio.csproj --configfile .\NuGet.Config
+dotnet build .\Nimvio.App\Nimvio.csproj -c Release --no-restore
+dotnet publish .\Nimvio.App\Nimvio.csproj -c Release --no-restore --no-self-contained -o .\publish
 ```
 
 Run the development build:
 
 ```powershell
-dotnet run --project .\Nimvio.csproj
+dotnet run --project .\Nimvio.App\Nimvio.csproj
 ```
 
 ## Automated GitHub releases
@@ -182,18 +182,19 @@ The workflow requires the repository setting **Actions → General → Workflow 
 
 | Folder | Responsibility |
 | --- | --- |
-| `Program.cs` | Application entry point |
-| `Application/` | WinForms application context, tray icon, and companion lifecycle |
-| `NimvioForm/` | Main companion window, behavior enum, context menu, state machine, rendering |
-| `AboutForm/` | About dialog |
-| `Settings/` | Profiles, preferences, persistence, relationship memory, screen filters |
-| `Characters/` | Character names, JSON conversion, and active-app accessories |
-| `NimvioMind/` | Energy, curiosity, boredom, happiness, and mood updates |
-| `DesktopAwareness/` | Window enumeration rules and Win32 desktop awareness |
-| `SingleInstance/` | Mutex and activation pipe for a single running instance |
-| `Startup/` | Packaged and unpackaged “start with Windows” integration |
+| `Nimvio.App/` | Main WinForms application project |
+| `Nimvio.App/Program.cs` | Application entry point |
+| `Nimvio.App/Application/` | WinForms application context, tray icon, and companion lifecycle |
+| `Nimvio.App/NimvioForm/` | Main companion window, behavior enum, context menu, state machine, rendering |
+| `Nimvio.App/AboutForm/` | About dialog |
+| `Nimvio.App/Settings/` | Profiles, preferences, persistence, relationship memory, screen filters |
+| `Nimvio.App/Characters/` | Character names, JSON conversion, and active-app accessories |
+| `Nimvio.App/NimvioMind/` | Energy, curiosity, boredom, happiness, and mood updates |
+| `Nimvio.App/DesktopAwareness/` | Window enumeration rules and Win32 desktop awareness |
+| `Nimvio.App/SingleInstance/` | Mutex and activation pipe for a single running instance |
+| `Nimvio.App/Startup/` | Packaged and unpackaged “start with Windows” integration |
+| `Nimvio.App/assets/` | Icons and character sprites |
 | `Nimvio.Tests/` | xUnit test project (`Application/`, `Form/`, `Mind/`, …) |
-| `assets/` | Icons and character sprites |
 | `install.ps1` / `uninstall.ps1` | Per-user installation and removal |
 
 ## Privacy
