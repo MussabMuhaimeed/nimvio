@@ -87,9 +87,9 @@ internal sealed class AboutForm : Form
         gallery.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
         gallery.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
         gallery.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
-        gallery.Controls.Add(CreateProfileCard("Nova", "Cyan", "Curious", "Nimvio.Assets.nova-cyan.png", Color.FromArgb(86, 221, 242)), 0, 0);
-        gallery.Controls.Add(CreateProfileCard("Mimo", "Orange", "Playful", "Nimvio.Assets.mimo-orange.png", Color.FromArgb(255, 176, 76)), 1, 0);
-        gallery.Controls.Add(CreateProfileCard("Lumi", "Purple", "Calm", "Nimvio.Assets.lumi-purple.png", Color.FromArgb(211, 126, 255)), 2, 0);
+        gallery.Controls.Add(CreateProfileCard(NimvioCharacterName.Nova.ToString(), "Cyan", "Curious", "Nimvio.Assets.nova-cyan.png", Color.FromArgb(86, 221, 242)), 0, 0);
+        gallery.Controls.Add(CreateProfileCard(NimvioCharacterName.Mimo.ToString(), "Orange", "Playful", "Nimvio.Assets.mimo-orange.png", Color.FromArgb(255, 176, 76)), 1, 0);
+        gallery.Controls.Add(CreateProfileCard(NimvioCharacterName.Lumi.ToString(), "Purple", "Calm", "Nimvio.Assets.lumi-purple.png", Color.FromArgb(211, 126, 255)), 2, 0);
         root.Controls.Add(gallery, 0, 1);
 
         var projectInfo = new Label

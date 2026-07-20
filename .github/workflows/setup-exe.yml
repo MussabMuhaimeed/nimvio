@@ -100,6 +100,27 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Restore unit tests
+        shell: pwsh
+        run: dotnet restore .\nimvio.tests\Nimvio.Tests.csproj --configfile .\NuGet.Config
+
+      - name: Build unit tests
+        shell: pwsh
+        run: dotnet build .\nimvio.tests\Nimvio.Tests.csproj -c Release --no-restore
+
+      - name: Run unit tests
+        shell: pwsh
+        run: dotnet test .\nimvio.tests\Nimvio.Tests.csproj -c Release --no-build --no-restore --logger "trx;LogFileName=nimvio-tests.trx" --results-directory .\TestResults
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: setup-test-results-${{ github.run_id }}
+          path: TestResults/*.trx
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish application
         shell: pwsh
         run: |

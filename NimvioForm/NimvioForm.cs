@@ -2,28 +2,6 @@ using System.Drawing.Drawing2D;
 
 namespace Nimvio;
 
-internal enum NimvioBehavior
-{
-    Searching, Walking, Hopping, Sitting, Pointing, LookingAround, Thinking,
-    Sleeping, Waving, Inspecting, ChasingCursor, FleeingCursor, HoldingCursor, Happy, Sad, Angry, Peeking,
-    PlayingTogether, Arguing, Hugging, Competing, WatchingYouTube, Sliding, Hanging, Falling, Stumbling, Surprised, Thrown
-}
-
-internal enum ActiveAppAccessory { None, Pen, Book, Headphones }
-
-internal sealed class NimvioContextMenuStrip : ContextMenuStrip
-{
-    protected override bool ProcessCmdKey(ref Message message, Keys keyData)
-    {
-        if (keyData == Keys.Escape)
-        {
-            Close(ToolStripDropDownCloseReason.Keyboard);
-            return true;
-        }
-        return base.ProcessCmdKey(ref message, keyData);
-    }
-}
-
 internal sealed class NimvioForm : Form
 {
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 16 };
@@ -44,10 +22,13 @@ internal sealed class NimvioForm : Form
     private int _rareEventCooldown = 500;
     private int _hoverTicks;
     private int _socialTicks = 180;
+    private int _socialInteractionCooldown;
+    private int _windowInteractionCooldown;
     private int _blinkTicks = 150;
     private int _blinkFrames;
     private float _phase;
     private float _sitBlend;
+    private float _hideBlend;
     private bool _dragging;
     private bool _didDrag;
     private bool _searchOtherScreen;
@@ -66,9 +47,13 @@ internal sealed class NimvioForm : Form
     private int _speechTicks;
     private int _speechCooldown = 180;
     private int _jealousyCooldown;
+    private bool _userWasAway;
 
     public NimvioProfile Profile { get; }
     internal PointF WorldCenter => Center;
+    internal IntPtr PerchedWindowHandle => _perchedWindow;
+    internal bool IsSafelyPerched => _perchedWindow != IntPtr.Zero && !IsMoving
+        && _behavior is not NimvioBehavior.Falling and not NimvioBehavior.Thrown and not NimvioBehavior.Hanging;
 
     public NimvioForm(NimvioApplicationContext context, NimvioSettings settings, NimvioProfile profile)
     {
@@ -90,20 +75,7 @@ internal sealed class NimvioForm : Form
         var start = enabled[_random.Next(enabled.Length)].WorkingArea;
         Location = new Point(start.Left + start.Width / 2 - Width / 2, start.Top + start.Height / 2 - Height / 2);
         BuildMenu();
-        var returningAfterLongAbsence = DateTime.UtcNow - Profile.LastSeenUtc > TimeSpan.FromHours(4);
-        if (returningAfterLongAbsence)
-        {
-            _behavior = NimvioBehavior.Happy;
-            _behaviorTicks = 260;
-            _restActionsRemaining = 2;
-            _mind.MissedUser();
-            ShowSpeech("You're back!", true);
-        }
-        else
-        {
-            StartSearching(false);
-        }
-
+        StartSearching(false);
         Profile.LastSeenUtc = DateTime.UtcNow;
         _knownWindows = DesktopAwareness.VisibleWindowHandles();
 
@@ -132,11 +104,17 @@ internal sealed class NimvioForm : Form
     private bool IsMoving => _behavior is NimvioBehavior.Walking or NimvioBehavior.Hopping or NimvioBehavior.ChasingCursor
         or NimvioBehavior.FleeingCursor or NimvioBehavior.Peeking or NimvioBehavior.Competing
         or NimvioBehavior.Sliding or NimvioBehavior.Falling;
-    private bool IsSeatedBehavior => _behavior is NimvioBehavior.Sitting or NimvioBehavior.Pointing or NimvioBehavior.LookingAround
+    private bool IsSeatedBehavior => _behavior is NimvioBehavior.Sitting or NimvioBehavior.Feeding or NimvioBehavior.Pointing or NimvioBehavior.LookingAround
         or NimvioBehavior.Thinking or NimvioBehavior.Sleeping or NimvioBehavior.Waving or NimvioBehavior.Inspecting
         or NimvioBehavior.HoldingCursor or NimvioBehavior.Happy or NimvioBehavior.Sad or NimvioBehavior.Angry
-        or NimvioBehavior.PlayingTogether or NimvioBehavior.Arguing or NimvioBehavior.Hugging or NimvioBehavior.Hanging
-        or NimvioBehavior.WatchingYouTube;
+        or NimvioBehavior.PlayingTogether or NimvioBehavior.SharingMilk or NimvioBehavior.Arguing or NimvioBehavior.Hugging or NimvioBehavior.Hanging
+        or NimvioBehavior.WatchingYouTube or NimvioBehavior.HidingBehindWindow;
+    private bool IsSocialBehavior => _behavior is NimvioBehavior.PlayingTogether or NimvioBehavior.SharingMilk
+        or NimvioBehavior.Arguing or NimvioBehavior.Hugging or NimvioBehavior.Competing;
+    internal bool CanStartSocialInteraction => !IsDisposed && !_dragging && _settings.Playing && Opacity > 0
+        && _socialInteractionCooldown == 0 && !IsMoving && !IsSocialBehavior
+        && _behavior is not NimvioBehavior.Sleeping and not NimvioBehavior.Feeding
+            and not NimvioBehavior.WatchingYouTube and not NimvioBehavior.HidingBehindWindow;
 
     private void BuildMenu()
     {
@@ -190,34 +168,11 @@ internal sealed class NimvioForm : Form
         AddChoice(personality, "Playful", NimvioPersonality.Playful, () => Profile.Personality, value => Profile.Personality = value);
         _menu.Items.Add(personality);
 
-        var name = new ToolStripMenuItem("Character name");
-        foreach (var candidate in new[] { "Nova", "Mimo", "Lumi" })
-        {
-            var item = new ToolStripMenuItem(candidate) { Checked = Profile.Name == candidate };
-            item.Click += (_, _) =>
-            {
-                Profile.Name = candidate;
-                foreach (ToolStripMenuItem sibling in name.DropDownItems.OfType<ToolStripMenuItem>())
-                {
-                    sibling.Checked = sibling == item;
-                }
-
-                SaveSettings();
-            };
-            name.DropDownItems.Add(item);
-        }
-        _menu.Items.Add(name);
-
         var color = new ToolStripMenuItem("Character color");
         AddColorChoice(color, "Cyan", Color.FromArgb(86, 221, 242));
         AddColorChoice(color, "Orange", Color.FromArgb(255, 176, 76));
-        AddColorChoice(color, "Green", Color.FromArgb(116, 226, 144));
         AddColorChoice(color, "Purple", Color.FromArgb(211, 126, 255));
         _menu.Items.Add(color);
-
-        var quiet = new ToolStripMenuItem("Quiet hours 22:00–07:00") { CheckOnClick = true, Checked = _settings.QuietHoursEnabled };
-        quiet.CheckedChanged += (_, _) => { _settings.QuietHoursEnabled = quiet.Checked; SaveSettings(); };
-        _menu.Items.Add(quiet);
 
         var fullscreen = new ToolStripMenuItem("Hide during fullscreen") { CheckOnClick = true, Checked = _settings.PauseInFullscreen };
         fullscreen.CheckedChanged += (_, _) => { _settings.PauseInFullscreen = fullscreen.Checked; SaveSettings(); };
@@ -227,7 +182,7 @@ internal sealed class NimvioForm : Form
         startup.CheckedChanged += async (_, _) => await NimvioSettings.SetStartWithWindowsAsync(startup.Checked);
         _menu.Items.Add(startup);
         _menu.Items.Add(new ToolStripSeparator());
-        _menu.Items.Add("Add another character", null, (_, _) => _context.AddCompanion());
+        _menu.Items.Add(_context.CreateAddCharacterMenu("Add another character"));
         _menu.Items.Add($"Remove {Profile.Name}", null, (_, _) => _context.RemoveForm(this));
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add("About", null, (_, _) => AboutForm.ShowAbout(this));
@@ -363,20 +318,24 @@ internal sealed class NimvioForm : Form
             _jealousyCooldown--;
         }
 
+        if (_socialInteractionCooldown > 0)
+        {
+            _socialInteractionCooldown--;
+        }
+
+        if (_windowInteractionCooldown > 0)
+        {
+            _windowInteractionCooldown--;
+        }
+
         _phase += .12f;
         _sitBlend = Lerp(_sitBlend, IsSeatedBehavior ? 1f : 0f, .09f);
+        _hideBlend = Lerp(_hideBlend, _behavior == NimvioBehavior.HidingBehindWindow ? 1f : 0f, .08f);
         UpdateBlink();
         CheckSystemState();
         _mind.Tick(_behavior, _settings.Activity);
 
         if (_dragging || !_settings.Playing || Opacity == 0) { Invalidate(); return; }
-        if (_settings.IsQuietTime(DateTime.Now) && _behavior != NimvioBehavior.Sleeping)
-        {
-            _behavior = NimvioBehavior.Sleeping;
-            _behaviorTicks = 900;
-            _restActionsRemaining = 1;
-        }
-
         WatchForInteraction();
         TrackPerchedWindow();
         TryRareEvent();
@@ -494,7 +453,7 @@ internal sealed class NimvioForm : Form
         }
 
         _systemCheckTicks = 0;
-        Profile.LastSeenUtc = DateTime.UtcNow;
+        UpdateUserPresence();
         var active = DesktopAwareness.ActiveWindow();
         _activeAccessory = active is { } window ? AccessoryFor(window.ProcessName) : ActiveAppAccessory.None;
         var watchingYouTube = active is { } activeWindow && activeWindow.Title.Contains("YouTube", StringComparison.OrdinalIgnoreCase);
@@ -527,13 +486,36 @@ internal sealed class NimvioForm : Form
         }
         var shouldHide = _settings.PauseInFullscreen && DesktopAwareness.IsForeignFullscreen();
         Opacity = shouldHide ? 0 : 1;
-        if (_random.Next(5) == 0)
-        {
-            SaveSettings();
-        }
     }
 
-    private static ActiveAppAccessory AccessoryFor(string processName)
+    private void UpdateUserPresence()
+    {
+        var now = DateTime.UtcNow;
+        var idleTime = DesktopAwareness.UserIdleTime();
+        if (idleTime >= TimeSpan.FromMinutes(10))
+        {
+            if (!_userWasAway)
+            {
+                Profile.LastSeenUtc = now - idleTime;
+                _userWasAway = true;
+            }
+            return;
+        }
+
+        if (_userWasAway)
+        {
+            _userWasAway = false;
+            _behavior = NimvioBehavior.Happy;
+            _behaviorTicks = 260;
+            _restActionsRemaining = Math.Max(2, _restActionsRemaining);
+            _mind.MissedUser();
+            ShowSpeech("You're back!", true);
+        }
+
+        Profile.LastSeenUtc = now;
+    }
+
+    internal static ActiveAppAccessory AccessoryFor(string processName)
     {
         var name = processName.ToLowerInvariant();
         if (name is "spotify" or "vlc" or "wmplayer" or "musicbee" or "itunes")
@@ -566,6 +548,7 @@ internal sealed class NimvioForm : Form
             if (_behavior is NimvioBehavior.Walking or NimvioBehavior.Hopping)
             {
                 _perchedWindow = IntPtr.Zero;
+                StartSearching(false);
                 return;
             }
             StartFalling();
@@ -617,14 +600,14 @@ internal sealed class NimvioForm : Form
         var roll = _random.Next(100);
         var relationship = Profile.Relationships.GetValueOrDefault(friend.Profile.Id);
         var interaction = relationship > 30
-            ? roll < 58 ? NimvioBehavior.Hugging : NimvioBehavior.PlayingTogether
+            ? roll < 38 ? NimvioBehavior.Hugging : roll < 70 ? NimvioBehavior.SharingMilk : NimvioBehavior.PlayingTogether
             : relationship < -20
                 ? roll < 20 ? NimvioBehavior.Hugging : roll < 62 ? NimvioBehavior.Competing : NimvioBehavior.Arguing
                 : Profile.Personality == NimvioPersonality.Playful
             ? roll < 42 ? NimvioBehavior.PlayingTogether : roll < 68 ? NimvioBehavior.Competing : roll < 86 ? NimvioBehavior.Hugging : NimvioBehavior.Arguing
             : Profile.Personality == NimvioPersonality.Calm
-                ? roll < 48 ? NimvioBehavior.Hugging : roll < 75 ? NimvioBehavior.PlayingTogether : roll < 92 ? NimvioBehavior.Arguing : NimvioBehavior.Competing
-                : roll < 38 ? NimvioBehavior.Arguing : roll < 68 ? NimvioBehavior.PlayingTogether : roll < 88 ? NimvioBehavior.Hugging : NimvioBehavior.Competing;
+                ? roll < 34 ? NimvioBehavior.Hugging : roll < 61 ? NimvioBehavior.SharingMilk : roll < 79 ? NimvioBehavior.PlayingTogether : roll < 93 ? NimvioBehavior.Arguing : NimvioBehavior.Competing
+                : roll < 30 ? NimvioBehavior.Arguing : roll < 53 ? NimvioBehavior.PlayingTogether : roll < 70 ? NimvioBehavior.SharingMilk : roll < 90 ? NimvioBehavior.Hugging : NimvioBehavior.Competing;
         BeginSocialInteraction(friend, interaction, false);
         friend.BeginSocialInteraction(this, interaction, true);
         _context.NotifySocialInteraction(this, friend);
@@ -634,7 +617,8 @@ internal sealed class NimvioForm : Form
     {
         _facingRight = friend.WorldCenter.X >= Center.X;
         _behavior = interaction;
-        _behaviorTicks = interaction == NimvioBehavior.Competing ? 190 : 180;
+        _behaviorTicks = interaction == NimvioBehavior.SharingMilk ? 300 : interaction == NimvioBehavior.Competing ? 190 : 180;
+        _socialInteractionCooldown = 1200;
         _restActionsRemaining = Math.Max(1, _restActionsRemaining);
         if (interaction == NimvioBehavior.Competing)
         {
@@ -646,6 +630,7 @@ internal sealed class NimvioForm : Form
         {
             NimvioBehavior.Hugging => previousRelationship < 0 ? 9f : 5f,
             NimvioBehavior.PlayingTogether => 3f,
+            NimvioBehavior.SharingMilk => 4f,
             NimvioBehavior.Arguing => -3f,
             NimvioBehavior.Competing => -1f,
             _ => 0f
@@ -666,9 +651,13 @@ internal sealed class NimvioForm : Form
         {
             ShowSpeech("Let's play!");
         }
+        else if (interaction == NimvioBehavior.SharingMilk)
+        {
+            ShowSpeech("Milk together?", true);
+        }
 
         _mind.Socialized();
-        SaveSettings();
+        //   SaveSettings(); check if can i leave it here 
     }
 
     internal void ObserveFriendsInteraction(NimvioForm first, NimvioForm second)
@@ -781,7 +770,7 @@ internal sealed class NimvioForm : Form
         {
             _socialTicks = _random.Next(150, 300);
             var friend = _context.FindNearbyForm(this, 230);
-            if (friend is not null && _behavior != NimvioBehavior.Sleeping && !IsMoving)
+            if (CanStartSocialInteraction && friend is not null && friend.CanStartSocialInteraction)
             {
                 StartSocialInteraction(friend);
             }
@@ -796,6 +785,36 @@ internal sealed class NimvioForm : Form
         }
 
         var autonomyFactor = _settings.Autonomy == AutonomyLevel.High ? 2.0 : _settings.Autonomy == AutonomyLevel.Low ? .45 : 1.0;
+        if (_windowInteractionCooldown == 0 && IsSafelyPerched && !IsSocialBehavior
+            && _behavior is not NimvioBehavior.Sleeping and not NimvioBehavior.Feeding
+                and not NimvioBehavior.WatchingYouTube and not NimvioBehavior.HidingBehindWindow)
+        {
+            var friend = _context.FindPerchedFriend(this, 620);
+            if (friend is not null && _random.NextDouble() < .12 * autonomyFactor)
+            {
+                BeginWindowWave(friend);
+                friend.BeginWindowWave(this);
+                _rareEventCooldown = 900;
+                return;
+            }
+            if (_random.NextDouble() < .10 * autonomyFactor && TryHopToNearbyWindow())
+            {
+                _rareEventCooldown = 1100;
+                return;
+            }
+        }
+        if (_windowInteractionCooldown == 0 && CanHideAtSafeEdge()
+            && !IsMoving && !IsSocialBehavior
+            && _behavior is not NimvioBehavior.Sleeping and not NimvioBehavior.Feeding
+                and not NimvioBehavior.WatchingYouTube and not NimvioBehavior.HidingBehindWindow
+            && _random.NextDouble() < .10 * autonomyFactor)
+        {
+            _behavior = NimvioBehavior.HidingBehindWindow;
+            _behaviorTicks = _random.Next(130, 210);
+            _windowInteractionCooldown = 1000;
+            _rareEventCooldown = 850;
+            return;
+        }
         if (IsMoving && _random.NextDouble() < .0014 * autonomyFactor)
         {
             _behavior = NimvioBehavior.Stumbling;
@@ -902,7 +921,7 @@ internal sealed class NimvioForm : Form
         var area = screen.WorkingArea;
         var marginX = Width / 2 + 8;
         var marginY = Height / 2 + 5;
-        var windows = DesktopAwareness.VisibleWindows(screen);
+        var windows = DesktopAwareness.VisibleWindowSnapshots(screen);
         var activeWindow = DesktopAwareness.ActiveWindow();
         var activeLedgeChance = Profile.Personality == NimvioPersonality.Curious ? .72
             : Profile.Personality == NimvioPersonality.Playful ? .52 : .38;
@@ -924,16 +943,24 @@ internal sealed class NimvioForm : Form
         for (var attempt = 0; attempt < 7; attempt++)
         {
             PointF candidate;
-            var usableLedges = windows.Where(window => window.Top > area.Top + Height && window.Top < area.Bottom - Height / 2).ToArray();
+            var candidateWindow = IntPtr.Zero;
+            var candidateWindowBounds = Rectangle.Empty;
+            var usableLedges = windows.Where(window => window.Bounds.Top > area.Top + Height
+                && window.Bounds.Top < area.Bottom - Height / 2).ToArray();
             var roll = _random.Next(100);
             if (roll < 34 && usableLedges.Length > 0)
             {
                 var ledge = usableLedges[_random.Next(usableLedges.Length)];
-                var left = Math.Max(area.Left + marginX, ledge.Left + marginX);
-                var right = Math.Min(area.Right - marginX, ledge.Right - marginX);
+                var left = Math.Max(area.Left + marginX, ledge.Bounds.Left + marginX);
+                var right = Math.Min(area.Right - marginX, ledge.Bounds.Right - marginX);
                 candidate = right > left
-                    ? new PointF(_random.Next(left, right), ledge.Top - marginY + 5)
+                    ? new PointF(_random.Next(left, right), ledge.Bounds.Top - marginY + 5)
                     : new PointF(area.Left + marginX, area.Bottom - marginY);
+                if (right > left)
+                {
+                    candidateWindow = ledge.Handle;
+                    candidateWindowBounds = ledge.Bounds;
+                }
             }
             else if (roll < 70)
             {
@@ -951,9 +978,13 @@ internal sealed class NimvioForm : Form
 
             if (!Profile.RecentPlaces.Any(place => Distance(candidate, place) < 150))
             {
+                _perchedWindow = candidateWindow;
+                _perchedWindowBounds = candidateWindowBounds;
                 return candidate;
             }
         }
+        _perchedWindow = IntPtr.Zero;
+        _perchedWindowBounds = Rectangle.Empty;
         return RandomPoint(area);
     }
 
@@ -1002,11 +1033,6 @@ internal sealed class NimvioForm : Form
             StartSearching(false);
             return;
         }
-        if (_behavior == NimvioBehavior.Sleeping && _settings.IsQuietTime(DateTime.Now))
-        {
-            _behaviorTicks = 600;
-            return;
-        }
         ContinueRestRoutine();
     }
 
@@ -1043,20 +1069,20 @@ internal sealed class NimvioForm : Form
             {
                 NimvioPersonality.Curious => roll switch
                 {
-                    < 32 => NimvioBehavior.Inspecting, < 55 => NimvioBehavior.LookingAround,
-                    < 72 => NimvioBehavior.Thinking, < 87 => NimvioBehavior.Pointing,
+                    < 27 => NimvioBehavior.Inspecting, < 47 => NimvioBehavior.LookingAround,
+                    < 62 => NimvioBehavior.Thinking, < 75 => NimvioBehavior.Feeding, < 88 => NimvioBehavior.Pointing,
                     < 94 => NimvioBehavior.Waving, _ => NimvioBehavior.Sleeping
                 },
                 NimvioPersonality.Playful => roll switch
                 {
-                    < 29 => NimvioBehavior.ChasingCursor, < 52 => NimvioBehavior.Waving,
-                    < 72 => NimvioBehavior.Pointing, < 86 => NimvioBehavior.LookingAround,
+                    < 25 => NimvioBehavior.ChasingCursor, < 45 => NimvioBehavior.Waving,
+                    < 62 => NimvioBehavior.Pointing, < 74 => NimvioBehavior.Feeding, < 87 => NimvioBehavior.LookingAround,
                     < 95 => NimvioBehavior.Inspecting, _ => NimvioBehavior.Sleeping
                 },
                 _ => roll switch
                 {
-                    < 36 => NimvioBehavior.Sleeping, < 58 => NimvioBehavior.Thinking,
-                    < 75 => NimvioBehavior.Sitting, < 87 => NimvioBehavior.LookingAround,
+                    < 32 => NimvioBehavior.Sleeping, < 50 => NimvioBehavior.Thinking,
+                    < 65 => NimvioBehavior.Sitting, < 80 => NimvioBehavior.Feeding, < 89 => NimvioBehavior.LookingAround,
                     < 95 => NimvioBehavior.Waving, _ => NimvioBehavior.Pointing
                 }
             };
@@ -1065,6 +1091,7 @@ internal sealed class NimvioForm : Form
         _behaviorTicks = _behavior switch
         {
             NimvioBehavior.Sleeping => _random.Next(280, 580),
+            NimvioBehavior.Feeding => _random.Next(220, 360),
             NimvioBehavior.ChasingCursor => _random.Next(180, 300),
             NimvioBehavior.Sitting => _random.Next(80, 170),
             _ => _random.Next(130, 280)
@@ -1172,6 +1199,11 @@ internal sealed class NimvioForm : Form
         }
     }
 
+    internal void RunOneTickForTests() => TickForm(null, EventArgs.Empty);
+
+    internal void RunPaintForTests(Graphics graphics)
+        => OnPaint(new PaintEventArgs(graphics, ClientRectangle));
+
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
@@ -1195,7 +1227,7 @@ internal sealed class NimvioForm : Form
         }
 
         var bob = IsMoving ? MathF.Abs(MathF.Sin(_phase)) * -4f : MathF.Sin(_phase * .42f) * 1.2f;
-        e.Graphics.TranslateTransform(0, bob);
+        e.Graphics.TranslateTransform(0, bob + _hideBlend * 42f);
         DrawShadow(e.Graphics);
         DrawForm(e.Graphics);
     }
@@ -1264,7 +1296,17 @@ internal sealed class NimvioForm : Form
 
     private void DrawArms(Graphics g, Pen limb, Brush accent, float y)
     {
-        if (_behavior == NimvioBehavior.Angry)
+        if (_behavior is NimvioBehavior.Feeding or NimvioBehavior.SharingMilk)
+        {
+            var sip = MathF.Sin(_phase * 1.35f) * 1.4f;
+            g.DrawLine(limb, -20, 13 + y, -15, 19 + y + sip);
+            g.DrawLine(limb, -15, 19 + y + sip, -9, 13 + y + sip);
+            g.DrawLine(limb, 20, 13 + y, 15, 19 + y + sip);
+            g.DrawLine(limb, 15, 19 + y + sip, 9, 13 + y + sip);
+            g.FillEllipse(accent, -13, 9 + y + sip, 8, 8);
+            g.FillEllipse(accent, 5, 9 + y + sip, 8, 8);
+        }
+        else if (_behavior == NimvioBehavior.Angry)
         {
             g.DrawLine(limb, -20, 13 + y, 16, 24 + y);
             g.DrawLine(limb, 20, 13 + y, -16, 24 + y);
@@ -1371,7 +1413,11 @@ internal sealed class NimvioForm : Form
 
     private void DrawBehaviorProp(Graphics g, Brush accent, Pen rim, float headY)
     {
-        if (_behavior == NimvioBehavior.Searching)
+        if (_behavior is NimvioBehavior.Feeding or NimvioBehavior.SharingMilk)
+        {
+            DrawMilkBottle(g, headY);
+        }
+        else if (_behavior == NimvioBehavior.Searching)
         {
             using var searchPen = new Pen(Color.FromArgb(190, Color.FromArgb(Profile.AccentArgb)), 2f);
             g.DrawArc(searchPen, 35, -35, 12, 12, 20, 300);
@@ -1460,6 +1506,123 @@ internal sealed class NimvioForm : Form
         }
     }
 
+    private bool CanHideAtSafeEdge()
+    {
+        var screen = Screen.FromPoint(Point.Round(Center));
+        var taskbarIsBelow = screen.WorkingArea.Bottom < screen.Bounds.Bottom;
+        var taskbarEdgeY = screen.WorkingArea.Bottom - Height / 2f - 5;
+        if (_perchedWindow == IntPtr.Zero && taskbarIsBelow && Math.Abs(Center.Y - taskbarEdgeY) < 34)
+        {
+            return true;
+        }
+
+        var activeWindow = DesktopAwareness.ActiveWindow();
+        if (activeWindow is not { } active || active.Handle != _perchedWindow)
+        {
+            return false;
+        }
+
+        var titleBarEdgeY = active.Bounds.Top - Height / 2f;
+        return Math.Abs(Center.Y - titleBarEdgeY) < 34;
+    }
+
+    private bool TryHopToNearbyWindow()
+    {
+        var screen = Screen.FromPoint(Point.Round(Center));
+        var marginX = Width / 2 + 10;
+        var marginY = Height / 2 + 5;
+        var candidates = DesktopAwareness.VisibleWindowSnapshots(screen)
+            .Where(window => window.Handle != _perchedWindow
+                && window.Bounds.Width > marginX * 2
+                && window.Bounds.Top > screen.WorkingArea.Top + Height
+                && window.Bounds.Top < screen.WorkingArea.Bottom - Height / 2)
+            .Select(window => new
+            {
+                Window = window,
+                Landing = new PointF(
+                    Math.Clamp(Center.X, window.Bounds.Left + marginX, window.Bounds.Right - marginX),
+                    window.Bounds.Top - marginY + 5)
+            })
+            .Where(item => Distance(Center, item.Landing) is > 100 and < 560)
+            .OrderBy(item => Distance(Center, item.Landing))
+            .Take(3)
+            .ToArray();
+        if (candidates.Length == 0)
+        {
+            return false;
+        }
+
+        var destination = candidates[_random.Next(candidates.Length)];
+        _perchedWindow = destination.Window.Handle;
+        _perchedWindowBounds = destination.Window.Bounds;
+        _target = destination.Landing;
+        _behavior = NimvioBehavior.Hopping;
+        _behaviorTicks = 260;
+        _restActionsRemaining = Math.Max(1, _restActionsRemaining);
+        _windowInteractionCooldown = 1200;
+        return true;
+    }
+
+    private void BeginWindowWave(NimvioForm friend)
+    {
+        if (!IsSafelyPerched)
+        {
+            return;
+        }
+        _facingRight = friend.WorldCenter.X >= Center.X;
+        _behavior = NimvioBehavior.Waving;
+        _behaviorTicks = 170;
+        _restActionsRemaining = Math.Max(1, _restActionsRemaining);
+        _windowInteractionCooldown = 1000;
+    }
+
+    private void DrawMilkBottle(Graphics g, float headY)
+    {
+        var sip = MathF.Sin(_phase * 1.35f) * 1.4f;
+        var state = g.Save();
+        g.TranslateTransform(0, headY + 58 + sip);
+        g.RotateTransform(-8f + MathF.Sin(_phase * .7f) * 1.5f);
+
+        using var bottleOutline = new Pen(Color.FromArgb(235, 210, 225, 245), 2.2f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+        using var bottle = new SolidBrush(Color.FromArgb(235, 238, 247, 255));
+        using var milk = new SolidBrush(Color.FromArgb(250, 255, 252, 225));
+        using var collar = new SolidBrush(Color.FromArgb(245, Color.FromArgb(Profile.AccentArgb)));
+        using var nipple = new SolidBrush(Color.FromArgb(245, 244, 190, 155));
+
+        using (var body = RoundedRect(new RectangleF(-10, -8, 20, 29), 6))
+        {
+            g.FillPath(bottle, body);
+            g.FillRectangle(milk, -8, 3, 16, 15);
+            g.DrawPath(bottleOutline, body);
+        }
+
+        g.FillRectangle(collar, -9, -10, 18, 6);
+        g.DrawRectangle(bottleOutline, -9, -10, 18, 6);
+        g.FillPolygon(nipple,
+        [
+            new PointF(-5, -10),
+            new PointF(5, -10),
+            new PointF(2.5f, -17),
+            new PointF(0, -20),
+            new PointF(-2.5f, -17)
+        ]);
+        g.DrawLines(bottleOutline,
+        [
+            new PointF(-5, -10),
+            new PointF(-2.5f, -17),
+            new PointF(0, -20),
+            new PointF(2.5f, -17),
+            new PointF(5, -10)
+        ]);
+
+        g.Restore(state);
+    }
+
     private PointF GetGazeOffset()
     {
         if (_behavior == NimvioBehavior.LookingAround)
@@ -1515,7 +1678,7 @@ internal sealed class NimvioForm : Form
         return new PointF(dx * 3.5f, dy * 2f);
     }
 
-    internal void BeginYouTubeWatching(DesktopAwareness.WindowSnapshot window, int index, int viewerCount)
+    internal void BeginYouTubeWatching(WindowSnapshot window, int index, int viewerCount)
     {
         if (_watchedYouTubeWindow == window.Handle && _behavior == NimvioBehavior.WatchingYouTube)
         {

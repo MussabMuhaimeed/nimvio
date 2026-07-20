@@ -9,3 +9,7 @@ dist/
 /Nimvio-Windows.zip
 .env
 app/
+App/
+installer/
+coverage.xml
+coverage.*.xml
