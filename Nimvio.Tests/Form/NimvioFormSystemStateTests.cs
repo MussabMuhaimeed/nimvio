@@ -8,6 +8,11 @@ public sealed class NimvioFormSystemStateTests : IDisposable
 {
     private readonly NimvioFormScenario _scenario = new();
 
+    public NimvioFormSystemStateTests()
+    {
+        DesktopAwareness.ClearTestOverrides();
+    }
+
     [Fact]
     public void TickCheckSystemStateMarksIgnoredUsersAndReturnsFromAway()
     {
@@ -17,6 +22,9 @@ public sealed class NimvioFormSystemStateTests : IDisposable
             var profile = NimvioFormScenario.Character(NimvioCharacterName.Nova, "nova");
             profile.LastInteractionUtc = DateTime.UtcNow.AddMinutes(-30);
             var settings = NimvioFormScenario.SettingsWith(profile);
+            DesktopAwareness.UserIdleTimeOverride = () => TimeSpan.FromSeconds(1);
+            DesktopAwareness.ActiveWindowOverride = () => null;
+            DesktopAwareness.VisibleWindowHandlesOverride = () => [];
             var form = Assert.Single(_scenario.CreateContext(settings, createInitialForms: true).Forms);
             NimvioFormTestState.SetSystemCheckTicks(form, 59);
             NimvioFormTestState.SetBehavior(form, NimvioBehavior.Sitting);
@@ -122,5 +130,9 @@ public sealed class NimvioFormSystemStateTests : IDisposable
         });
     }
 
-    public void Dispose() => _scenario.Dispose();
+    public void Dispose()
+    {
+        DesktopAwareness.ClearTestOverrides();
+        _scenario.Dispose();
+    }
 }
