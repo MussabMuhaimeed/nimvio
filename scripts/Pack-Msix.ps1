@@ -13,7 +13,7 @@ param(
     [string] $ManifestPath = (Join-Path $PSScriptRoot '..\packaging\AppxManifest.xml'),
 
     [Parameter(Mandatory = $false)]
-    [string] $AssetsDir = (Join-Path $PSScriptRoot '..\assets\msix')
+    [string] $AssetsDir = (Join-Path $PSScriptRoot '..\Nimvio.App\assets\msix')
 )
 
 $ErrorActionPreference = 'Stop'

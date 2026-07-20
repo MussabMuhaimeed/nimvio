@@ -53,22 +53,23 @@ Each character has an independent profile, color, personality, emotional state, 
 
 ### Natural desktop behavior
 
-- Walks, hops, searches, sits, points, waves, thinks, sleeps, and looks around.
+- Walks, hops, searches, sits, drinks milk from a bottle, points, waves, thinks, sleeps, and looks around.
 - Finds desktop edges, corners, and suitable visible-window ledges—including the **active window** ledge when curious.
 - **Perches on windows** and moves with them; slides along slowly or hangs on when the window shifts, then falls if the window closes or moves too far.
+- Safely hops between nearby visible window ledges, ducks only behind the taskbar or the active window's top bar, and waves to companions perched on other windows.
 - Travels across monitors placed beside, above, or below each other.
 - Includes blinking, breathing, head tilting, sitting transitions, dynamic shadows, and **speech bubbles**.
 - Reacts to the cursor: may **chase** it, **flee** from it, or catch it and celebrate.
 - **Peeks** beside the text caret when you start typing nearby.
 - **Watches YouTube** with you—companions gather along the top of the video window with popcorn.
 - Shows **app-themed accessories** while you work: a pen for coding apps, a book for browsers and readers, headphones for music players.
-- Greets you with **"You're back!"** after a long absence; may look **sad** if ignored for a while.
+- Greets you with **"You're back!"** after 10 minutes without keyboard or mouse input; may look **sad** if ignored for a while.
 - Gets **surprised** when a new window appears; shows happy, sad, or angry moods.
 - Occasionally stumbles, uses binoculars, or triggers rare playful events.
 
 ### Social life between companions
 
-- Nearby companions start varied interactions: hugging, playing, competing, or arguing.
+- Nearby companions start varied interactions: sharing milk, hugging, playing, competing, or arguing.
 - Relationship scores change with each interaction and persist across sessions.
 - Reconciliation hugs after a rough relationship can trigger special dialogue.
 - Observers with a favorite friend may react with jealousy.
@@ -76,7 +77,6 @@ Each character has an independent profile, color, personality, emotional state, 
 ### Designed to stay out of the way
 
 - Hides automatically while another application is fullscreen.
-- Supports configurable quiet hours from 22:00 to 07:00.
 - Lets you choose exactly which monitors companions may visit.
 - Runs as a lightweight native Windows application—no Electron or embedded browser.
 - Uses a custom multi-resolution character-head icon in the executable, shortcuts, and notification area.
@@ -122,12 +122,12 @@ The right-click menu is entirely in English and includes:
 | Size | Small, Medium, Large |
 | Screens | Enable specific monitors or send a character to a chosen screen |
 | Personality | Curious, Calm, Playful |
-| Character | Nova, Mimo, Lumi |
-| Color | Cyan, Orange, Green, Purple |
-| Focus | Quiet hours and fullscreen hiding |
+| Characters | Fixed Nova, Mimo, and Lumi identities; each can be added only once |
+| Color | Cyan, Orange, Purple |
+| Focus | Fullscreen hiding |
 | System | Start with Windows, add/remove characters, About |
 
-Nimvio supports up to **three active companions**.
+Nimvio supports up to **three active companions**. The Add character submenu lists only the fixed identities that are not currently active.
 
 ## How decisions work
 
@@ -153,15 +153,15 @@ The behavior model is deterministic enough to feel coherent but includes weighte
 Open PowerShell in the project directory:
 
 ```powershell
-dotnet restore .\Nimvio.csproj --configfile .\NuGet.Config
-dotnet build .\Nimvio.csproj -c Release --no-restore
-dotnet publish .\Nimvio.csproj -c Release --no-restore --no-self-contained -o .\publish
+dotnet restore .\Nimvio.App\Nimvio.csproj --configfile .\NuGet.Config
+dotnet build .\Nimvio.App\Nimvio.csproj -c Release --no-restore
+dotnet publish .\Nimvio.App\Nimvio.csproj -c Release --no-restore --no-self-contained -o .\publish
 ```
 
 Run the development build:
 
 ```powershell
-dotnet run --project .\Nimvio.csproj
+dotnet run --project .\Nimvio.App\Nimvio.csproj
 ```
 
 ## Automated GitHub releases
@@ -180,15 +180,21 @@ The workflow requires the repository setting **Actions → General → Workflow 
 
 ## Architecture
 
-| File | Responsibility |
+| Folder | Responsibility |
 | --- | --- |
-| `Program.cs` | Starts the WinForms application context |
-| `NimvioApplicationContext.cs` | Manages companions, social coordination, YouTube watching, and the notification-area icon |
-| `NimvioForm.cs` | Behavior state machine, input, speech bubbles, accessories, animation, menus, and vector rendering |
-| `NimvioMind.cs` | Energy, curiosity, boredom, happiness, and social mood updates |
-| `DesktopAwareness.cs` | Monitors, visible windows, active window metadata, caret position, typing keys, and fullscreen detection |
-| `NimvioSettings.cs` | Profiles, relationships, preferences, memory, persistence, and startup settings |
-| `assets/nimvio.ico` | Multi-resolution Windows application icon |
+| `Nimvio.App/` | Main WinForms application project |
+| `Nimvio.App/Program.cs` | Application entry point |
+| `Nimvio.App/Application/` | WinForms application context, tray icon, and companion lifecycle |
+| `Nimvio.App/NimvioForm/` | Main companion window, behavior enum, context menu, state machine, rendering |
+| `Nimvio.App/AboutForm/` | About dialog |
+| `Nimvio.App/Settings/` | Profiles, preferences, persistence, relationship memory, screen filters |
+| `Nimvio.App/Characters/` | Character names, JSON conversion, and active-app accessories |
+| `Nimvio.App/NimvioMind/` | Energy, curiosity, boredom, happiness, and mood updates |
+| `Nimvio.App/DesktopAwareness/` | Window enumeration rules and Win32 desktop awareness |
+| `Nimvio.App/SingleInstance/` | Mutex and activation pipe for a single running instance |
+| `Nimvio.App/Startup/` | Packaged and unpackaged “start with Windows” integration |
+| `Nimvio.App/assets/` | Icons and character sprites |
+| `Nimvio.Tests/` | xUnit test project (`Application/`, `Form/`, `Mind/`, …) |
 | `install.ps1` / `uninstall.ps1` | Per-user installation and removal |
 
 ## Privacy

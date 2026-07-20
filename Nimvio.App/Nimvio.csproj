@@ -13,8 +13,12 @@
     <!-- Avoid probing a locally ACL-restricted legacy Microsoft SDKs folder. -->
     <TargetPlatformMoniker>Windows,Version=7.0</TargetPlatformMoniker>
     <TargetPlatformDisplayName>Windows</TargetPlatformDisplayName>
+    <DefaultItemExcludes>$(DefaultItemExcludes);new-chat\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Nimvio.Tests</_Parameter1>
+    </AssemblyAttribute>
     <EmbeddedResource Include="assets\nova-cyan.png" LogicalName="Nimvio.Assets.nova-cyan.png" />
     <EmbeddedResource Include="assets\mimo-orange.png" LogicalName="Nimvio.Assets.mimo-orange.png" />
     <EmbeddedResource Include="assets\lumi-purple.png" LogicalName="Nimvio.Assets.lumi-purple.png" />
