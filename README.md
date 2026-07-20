@@ -192,7 +192,7 @@ The workflow requires the repository setting **Actions → General → Workflow 
 | `DesktopAwareness/` | Window enumeration rules and Win32 desktop awareness |
 | `SingleInstance/` | Mutex and activation pipe for a single running instance |
 | `Startup/` | Packaged and unpackaged “start with Windows” integration |
-| `nimvio.tests/` | xUnit test project (unchanged layout) |
+| `Nimvio.Tests/` | xUnit test project (`Application/`, `Form/`, `Mind/`, …) |
 | `assets/` | Icons and character sprites |
 | `install.ps1` / `uninstall.ps1` | Per-user installation and removal |
 

@@ -13,7 +13,7 @@
     <!-- Avoid probing a locally ACL-restricted legacy Microsoft SDKs folder. -->
     <TargetPlatformMoniker>Windows,Version=7.0</TargetPlatformMoniker>
     <TargetPlatformDisplayName>Windows</TargetPlatformDisplayName>
-    <DefaultItemExcludes>$(DefaultItemExcludes);new-chat\**;installer\**;nimvio.tests\**;App\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);new-chat\**;installer\**;Nimvio.Tests\**;App\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
