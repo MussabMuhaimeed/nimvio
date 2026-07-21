@@ -1,0 +1,38 @@
+<Project>
+  <!-- Version from nearest git tag v*. Override: -p:Version=x.y.z -p:SkipGitVersion=true -->
+  <Target Name="SetVersionFromGitTag"
+          BeforeTargets="GenerateAssemblyInfo;GetAssemblyVersion;GetPackageVersion"
+          Condition="'$(SkipGitVersion)' != 'true' And ('$(Version)' == '' Or '$(Version)' == '1.0.0')">
+    <Exec Command="git describe --tags --exact-match --match v* HEAD"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          StandardOutputImportance="Low"
+          StandardErrorImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitExactTag" />
+      <Output TaskParameter="ExitCode" PropertyName="_GitExactTagExitCode" />
+    </Exec>
+
+    <Exec Command="git describe --tags --match v* --abbrev=0"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          StandardOutputImportance="Low"
+          StandardErrorImportance="Low"
+          Condition="'$(_GitExactTagExitCode)' != '0'">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitLatestTag" />
+      <Output TaskParameter="ExitCode" PropertyName="_GitLatestTagExitCode" />
+    </Exec>
+
+    <PropertyGroup>
+      <_GitTag Condition="'$(_GitExactTagExitCode)' == '0'">$([System.String]::Copy('$(_GitExactTag)').Trim())</_GitTag>
+      <_GitTag Condition="'$(_GitTag)' == '' And '$(_GitLatestTagExitCode)' == '0'">$([System.String]::Copy('$(_GitLatestTag)').Trim())</_GitTag>
+      <Version Condition="'$(_GitTag)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(_GitTag)', '^[vV]', ''))</Version>
+      <InformationalVersion Condition="'$(Version)' != '' And '$(Version)' != '1.0.0'">$(Version)</InformationalVersion>
+    </PropertyGroup>
+
+    <Warning Text="No git tag matching 'v*' was found; leaving Version=$(Version)."
+             Condition="'$(Version)' == '' Or '$(Version)' == '1.0.0'" />
+    <Message Importance="Normal"
+             Text="Nimvio version from git tag: $(Version)"
+             Condition="'$(Version)' != '' And '$(Version)' != '1.0.0'" />
+  </Target>
+</Project>

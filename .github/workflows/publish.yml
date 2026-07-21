@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v5
@@ -49,27 +51,27 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Windows application
-        shell: pwsh
-        run: |
-          dotnet publish .\Nimvio.App\Nimvio.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            -o .\publish\app
-
       - name: Resolve package version
         id: version
         shell: pwsh
         run: |
-          if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            $version = $env:GITHUB_REF_NAME
-          }
-          else {
-            $version = "0.0.$env:GITHUB_RUN_NUMBER.0"
-          }
+          $version = & .\scripts\Get-AppVersion.ps1
           "version=$version" >> $env:GITHUB_OUTPUT
-          Write-Host "Package version: $version"
+          Write-Host "Package version from git tag: $version"
+
+      - name: Publish Windows application
+        shell: pwsh
+        run: |
+          # Stamp the same git-tag version into the binary (About page) and the MSIX.
+          $version = '${{ steps.version.outputs.version }}'
+          dotnet publish .\Nimvio.App\Nimvio.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:Version=$version `
+            -p:InformationalVersion=$version `
+            -p:SkipGitVersion=true `
+            -o .\publish\app
 
       - name: Pack MSIX
         shell: pwsh

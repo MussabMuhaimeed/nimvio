@@ -94,7 +94,7 @@ internal sealed class AboutForm : Form
 
         var projectInfo = new Label
         {
-            Text = "Nimvio — Your curious desktop companions     •     Created by: Mussab Muhaimeed     •     Version: 26.8.1",
+            Text = $"Nimvio — Your curious desktop companions     •     Created by: Mussab Muhaimeed     •     Version: {GetDisplayVersion()}",
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = Color.FromArgb(174, 187, 207),
@@ -170,6 +170,22 @@ internal sealed class AboutForm : Form
         ForeColor = color,
         BackColor = Color.Transparent
     };
+
+    private static string GetDisplayVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var informational = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            var plus = informational.IndexOf('+');
+            return plus >= 0 ? informational[..plus] : informational;
+        }
+
+        var version = assembly.GetName().Version;
+        return version is null ? "0.0.0" : $"{version.Major}.{version.Minor}.{version.Build}";
+    }
 
     private static Image LoadEmbeddedImage(string resourceName)
     {

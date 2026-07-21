@@ -101,10 +101,15 @@ jobs:
           $app = Join-Path $package 'app'
           New-Item -ItemType Directory -Force -Path $app | Out-Null
 
+          # Keep ZIP/About version aligned with the release tag.
+          $version = '${{ steps.version.outputs.tag }}'.TrimStart('v', 'V')
           dotnet publish .\Nimvio.App\Nimvio.csproj `
             -c Release `
             --no-restore `
             --no-self-contained `
+            -p:Version=$version `
+            -p:InformationalVersion=$version `
+            -p:SkipGitVersion=true `
             -o $app
 
           Copy-Item .\Install.cmd, .\Uninstall.cmd, .\install.ps1, .\uninstall.ps1 -Destination $package
