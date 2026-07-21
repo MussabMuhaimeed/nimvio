@@ -18,7 +18,12 @@ internal static class NimvioStartup
         {
             try
             {
-                return platform.GetStartupTaskAsync().GetAwaiter().GetResult().State == StartupTaskState.Enabled;
+                // Avoid UI-thread deadlock on WinRT StartupTask.GetAsync.
+                return Task.Run(async () =>
+                {
+                    var task = await platform.GetStartupTaskAsync().ConfigureAwait(false);
+                    return task.State == StartupTaskState.Enabled;
+                }).GetAwaiter().GetResult();
             }
             catch
             {

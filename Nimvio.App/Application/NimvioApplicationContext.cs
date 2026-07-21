@@ -139,7 +139,16 @@ internal sealed class NimvioApplicationContext : ApplicationContext
         };
         Settings.Profiles.Add(profile);
         Settings.Save();
-        AddForm(profile, true);
+
+        // Defer form creation so the context menu can finish closing first.
+        if (Application.MessageLoop)
+        {
+            _uiContext.Post(_ => AddForm(profile, true), null);
+        }
+        else
+        {
+            AddForm(profile, true);
+        }
     }
 
     private void AddForm(NimvioProfile profile, bool nearCursor)

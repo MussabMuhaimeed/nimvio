@@ -45,7 +45,7 @@ jobs:
 
           if ($env:GITHUB_EVENT_NAME -eq 'workflow_run') {
             $sha = '${{ github.event.workflow_run.head_sha }}'
-            $tag = git describe --tags --exact-match $sha 2>$null
+            $tag = git describe --tags --exact-match --match 'v*' $sha 2>$null
             if (-not $tag) {
               $tag = git tag -l 'v*' --points-at $sha | Select-Object -First 1
             }
@@ -77,10 +77,11 @@ jobs:
             Write-Host "Building current branch code; version/release from tag $tag"
           }
           else {
-            $tag = "v0.0.$env:GITHUB_RUN_NUMBER"
+            $tag = 'v' + (& .\scripts\Get-AppVersion.ps1)
             if (-not (Test-Path .\packaging\Nimvio.iss)) {
               throw 'packaging/Nimvio.iss missing on this branch.'
             }
+            Write-Host "Manual run; using git tag version $tag"
           }
 
           $appVersion = $tag.TrimStart('v', 'V')
@@ -125,10 +126,15 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path .\publish\setup-app, .\dist | Out-Null
+          $version = '${{ steps.version.outputs.app_version }}'
+          # Stamp the same git-tag version into the binary (About page) and the setup EXE.
           dotnet publish .\Nimvio.App\Nimvio.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
+            -p:Version=$version `
+            -p:InformationalVersion=$version `
+            -p:SkipGitVersion=true `
             -o .\publish\setup-app
 
           if (-not (Test-Path .\publish\setup-app\Nimvio.exe)) {
